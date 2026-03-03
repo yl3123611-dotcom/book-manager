@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>我的预约</title>
+  <link href="/javaex/pc/css/common.css" rel="stylesheet" />
+  <link href="/javaex/pc/css/skin/tina.css" rel="stylesheet" />
+  <script src="/javaex/pc/lib/jquery-1.7.2.min.js"></script>
+  <script src="/javaex/pc/js/javaex.min.js"></script>
+  <style>
+    body { background-color: #f5f7fa; }
+    .main-card {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+      min-height: 600px;
+    }
+
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #ebeef5;
+    }
+
+    .page-title { font-size: 18px; font-weight: bold; color: #303133; }
+
+    /* 表格美化 */
+    .custom-table { width: 100%; border-collapse: collapse; }
+    .custom-table th {
+      background-color: #f5f7fa; color: #909399; font-weight: 500;
+      padding: 15px 10px; text-align: center; border-bottom: 1px solid #ebeef5;
+    }
+    .custom-table td {
+      padding: 15px 10px; color: #606266; text-align: center;
+      border-bottom: 1px solid #ebeef5; transition: background 0.3s;
+    }
+    .custom-table tr:hover td { background-color: #f9fafc; }
+
+    /* 状态标签 */
+    .status-badge { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+    .status-active { background-color: #ecf5ff; color: #409eff; }
+    .status-finished { background-color: #f0f9eb; color: #67c23a; }
+    .status-canceled { background-color: #f4f4f5; color: #909399; }
+
+    /* 按钮 */
+    .btn-new {
+      background: linear-gradient(135deg, #66b1ff 0%, #409eff 100%);
+      color: #fff; border: none; padding: 8px 20px;
+      border-radius: 20px; cursor: pointer; box-shadow: 0 4px 12px rgba(64,158,255,0.3);
+      text-decoration: none; display: inline-block; font-size: 14px;
+    }
+    .btn-new:hover { opacity: 0.9; color: #fff; }
+
+    .btn-leave {
+      background-color: #fff; border: 1px solid #f56c6c; color: #f56c6c;
+      padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;
+      transition: all 0.3s;
+    }
+    .btn-leave:hover { background-color: #f56c6c; color: #fff; }
+  </style>
+</head>
+<body>
+<div class="list-content">
+  <div class="block">
+    <div class="main main-card">
+      <div class="header-row">
+        <div class="page-title">
+          <i class="icon-list-alt" style="margin-right: 8px; color: #409eff;"></i>预约记录
+        </div>
+        <a href="/seat/list" target="iframe" class="btn-new">
+          <i class="icon-plus"></i> 新增预约
+        </a>
+      </div>
+
+      <table class="custom-table">
+        <thead>
+        <tr>
+          <th>序号</th>
+          <th>阅览室</th>
+          <th>座位号</th>
+          <th>开始时间</th>
+          <th>结束时间</th>
+          <th>当前状态</th>
+          <th>操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="item, stat : ${list}">
+          <td th:text="${stat.count}">1</td>
+          <td th:text="${item.room}">1号阅览室</td>
+          <td th:text="${item.seatNo}" style="font-weight: bold; color: #303133;">A-001</td>
+          <td th:text="${item.slotStart != null} ? ${#dates.format(item.slotStart, 'yyyy-MM-dd HH:mm')} : (${item.startTime != null} ? ${#dates.format(item.startTime, 'yyyy-MM-dd HH:mm')} : '-')"></td>
+          <td th:text="${item.slotEnd != null} ? ${#dates.format(item.slotEnd, 'yyyy-MM-dd HH:mm')} : (${item.endTime != null} ? ${#dates.format(item.endTime, 'yyyy-MM-dd HH:mm')} : '-')"></td>
+          <td>
+            <span th:if="${item.status == 1}" class="status-badge status-active">使用中</span>
+            <span th:if="${item.status == 3}" class="status-badge status-finished">已结束</span>
+            <span th:if="${item.status == 4}" class="status-badge status-canceled">已取消</span>
+          </td>
+          <td>
+            <button th:if="${item.slotStart != null and (item.status == 1 or item.status == 2 or item.status == 3)}"
+                    class="btn-leave"
+                    th:onclick="'cancelSlot(' + ${item.id} + ')'">
+              <i class="icon-close"></i> 取消
+            </button>
+
+            <button th:if="${item.slotStart == null and item.status == 1}"
+                    class="btn-leave"
+                    th:onclick="'leaveSeat(' + ${item.seatId} + ')'">
+              <i class="icon-logout"></i> 签退
+            </button>
+
+            <span th:if="${(item.slotStart != null and item.status != 1 and item.status != 2 and item.status != 3) or (item.slotStart == null and item.status != 1)}" style="color: #ccc;">-</span>
+          </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(list)}">
+          <td colspan="7" style="padding: 40px; text-align: center; color: #909399;">
+            暂无预约记录，快去预约一个吧！
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  var currentSeatId = 0;
+
+  function leaveSeat(seatId) {
+    currentSeatId = seatId;
+    javaex.confirm({
+      content : "确定要离开并释放座位吗？",
+      callback : "realLeave()"
+    });
+  }
+
+  function realLeave() {
+    if (!currentSeatId) return;
+    $.post("/seat/leave", { "seatId": currentSeatId }, function(res) {
+      if (res.code == "200") {
+        javaex.optTip({ content : "座位已释放", type : "success" });
+        setTimeout(function() { window.location.reload(); }, 1000);
+      } else {
+        javaex.optTip({ content : res.msg || "操作失败", type : "error" });
+      }
+    });
+  }
+
+  function cancelSlot(reservationId){
+    javaex.confirm({
+      content: '确定取消该预约吗？',
+      callback: 'realCancel(' + reservationId + ')'
+    });
+  }
+
+  function realCancel(reservationId){
+    $.post('/seat/cancelSlot', {reservationId: reservationId}, function(res){
+      if(res.code=="200"){
+        javaex.optTip({ content : res.msg || '已取消', type : 'success' });
+        setTimeout(function(){ window.location.reload(); }, 1000);
+      }else{
+        javaex.optTip({ content : res.msg || '取消失败', type : 'error' });
+      }
+    });
+  }
+</script>
+</body>
+</html>

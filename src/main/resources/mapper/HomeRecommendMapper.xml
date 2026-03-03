@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.book.manager.dao.HomeRecommendMapper">
+
+    <select id="listAll" resultType="com.book.manager.entity.HomeRecommend">
+        select
+            id,
+            book_id as bookId,
+            sort,
+            enabled,
+            create_time as createTime
+        from home_recommend
+        order by sort asc, id desc
+    </select>
+
+    <select id="listEnabled" resultType="com.book.manager.entity.HomeRecommend">
+        select
+            id,
+            book_id as bookId,
+            sort,
+            enabled,
+            create_time as createTime
+        from home_recommend
+        where enabled = 1
+        order by sort asc, id desc
+    </select>
+
+    <insert id="insert" parameterType="com.book.manager.entity.HomeRecommend" useGeneratedKeys="true" keyProperty="id">
+        insert into home_recommend(book_id, sort, enabled)
+        values (#{bookId}, #{sort}, #{enabled})
+    </insert>
+
+    <delete id="deleteByBookId">
+        delete from home_recommend where book_id = #{bookId}
+    </delete>
+
+    <update id="setEnabled">
+        update home_recommend set enabled = #{enabled} where id = #{id}
+    </update>
+
+</mapper>

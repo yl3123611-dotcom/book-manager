@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>专题</title>
+    <link href="../../javaex/pc/css/common.css" rel="stylesheet" />
+    <link href="../../javaex/pc/css/skin/tina.css" rel="stylesheet" />
+    <script src="../../javaex/pc/lib/jquery-1.7.2.min.js"></script>
+    <style>
+        body{ background:#f5f7fa; }
+        .topic-wrap{ max-width:1100px; margin:18px auto; }
+        .topic-header{ background:#fff; border-radius:10px; padding:18px 22px; box-shadow:0 4px 12px rgba(0,0,0,0.05); }
+        .topic-title{ font-size:22px; font-weight:700; color:#303133; }
+        .topic-desc{ margin-top:8px; color:#606266; font-size:13px; line-height:1.7; }
+
+        .book-grid{ display:flex; flex-wrap:wrap; gap:14px; margin-top:14px; }
+        .book-card{ width: calc(25% - 11px); background:#fff; border-radius:10px; padding:12px; box-shadow:0 2px 10px rgba(0,0,0,0.04); display:flex; gap:10px; }
+        .book-cover{ width:64px; height:90px; border-radius:6px; background:#f2f3f5; object-fit:cover; flex-shrink:0; }
+        .book-meta{ flex:1; min-width:0; }
+        .book-name{ font-size:14px; font-weight:700; color:#303133; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .book-author{ margin-top:6px; color:#606266; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .book-pub{ margin-top:4px; color:#909399; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .book-foot{ margin-top:8px; color:#909399; font-size:12px; display:flex; justify-content:space-between; }
+        .empty{ color:#909399; font-size:13px; padding:14px; }
+
+        @media (max-width: 1100px){ .book-card{ width: calc(33.33% - 10px); } }
+        @media (max-width: 860px){ .book-card{ width: calc(50% - 7px); } }
+        @media (max-width: 520px){ .book-card{ width: 100%; } }
+    </style>
+</head>
+<body>
+<div class="topic-wrap">
+    <div class="topic-header">
+        <div id="topicName" class="topic-title">专题</div>
+        <div id="topicDesc" class="topic-desc"></div>
+    </div>
+
+    <div class="book-grid" id="books"></div>
+</div>
+
+<script>
+    function getSlug(){
+        var p = window.location.pathname;
+        var parts = p.split('/');
+        return parts[parts.length-1] || 'hongloumeng';
+    }
+
+    function escapeHtml(s){
+        if(s==null) return "";
+        return String(s)
+            .replace(/&/g,'&amp;')
+            .replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;')
+            .replace(/\"/g,'&quot;')
+            .replace(/'/g,'&#39;');
+    }
+
+    function normalizeCoverPath(cover) {
+        if (!cover) return "";
+        if (/^(https?:)?\/\//.test(cover) || /^data:/.test(cover)) return cover;
+        if (cover.indexOf("/") === 0) return cover;
+        return "/" + cover;
+    }
+
+    function renderBooks(list){
+        if(!list || list.length===0){
+            $('#books').html('<div class="empty">暂无专题书目</div>');
+            return;
+        }
+        var html='';
+        for(var i=0;i<list.length;i++){
+            var b=list[i]||{};
+            var cover = b.cover ? normalizeCoverPath(b.cover) : '/javaex/img/1.jpg';
+            html += ''+
+                '<div class="book-card">'+
+                '  <img class="book-cover" src="'+escapeHtml(cover)+'" onerror="this.src=\'/javaex/img/1.jpg\'" />'+
+                '  <div class="book-meta">'+
+                '    <div class="book-name" title="'+escapeHtml(b.name||'')+'"><a href="/book/detail-view?id='+b.id+'" style="color:#303133;text-decoration:none;">'+escapeHtml(b.name||'')+'</a></div>'+
+                '    <div class="book-author">作者：'+escapeHtml(b.author||'-')+'</div>'+
+                '    <div class="book-pub">出版社：'+escapeHtml(b.publish||'-')+'</div>'+
+                '    <div class="book-foot"><span>库存：'+(b.size!=null?b.size:'-')+'</span><span style="color:#1677ff;">查看详情</span></div>'+
+                '  </div>'+
+                '</div>';
+        }
+        $('#books').html(html);
+    }
+
+    $(document).ready(function(){
+        var slug = getSlug();
+
+        // 先取专题元信息
+        $.get('/topic/api/'+slug, function(res){
+            if(res && res.code===200 && res.data){
+                $('#topicName').text(res.data.name || '专题');
+                $('#topicDesc').text(res.data.description || '');
+            }else{
+                $('#topicName').text('专题');
+                $('#topicDesc').text('');
+            }
+        });
+
+        // 再取书单
+        $.get('/topic/api/'+slug+'/books', function(res){
+            if(res && res.code===200){
+                renderBooks(res.data||[]);
+            }else{
+                renderBooks([]);
+            }
+        });
+    });
+</script>
+</body>
+</html>

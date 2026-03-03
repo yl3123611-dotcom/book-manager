@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="../javaex/pc/css/common.css" rel="stylesheet" />
+    <link href="../javaex/pc/css/skin/tina.css" rel="stylesheet" />
+    <script src="../javaex/pc/lib/jquery-1.7.2.min.js"></script>
+    <script src="../javaex/pc/js/javaex.min.js"></script>
+    <title>我的推荐历史</title>
+    <style>
+        body{background:#f5f7fa;padding:12px;}
+        .card{background:#fff;border-radius:8px;padding:16px;}
+        .book{display:flex;gap:12px;align-items:flex-start;border:1px solid #ebeef5;border-radius:10px;padding:10px;margin:10px 0;}
+        .cover{width:54px;height:72px;object-fit:cover;border-radius:4px;background:#f2f2f2;}
+        .meta{flex:1;}
+        .name{font-weight:700;color:#303133;}
+        .sub{font-size:12px;color:#909399;margin-top:4px;}
+        .tag{font-size:12px;color:#409eff;margin-left:8px;}
+    </style>
+</head>
+<body>
+<div class="card">
+    <h2>我的推荐历史</h2>
+    <div class="sub">展示 recommendation 表的明细，便于你演示“推荐落库可追溯”。</div>
+    <div id="list">加载中...</div>
+</div>
+<script>
+    $(function(){
+        $.get('/recommend/history?limit=100', function(res){
+            if(res.code!==200){ $('#list').html(res.msg||'加载失败'); return; }
+            var list = res.data || [];
+            if(list.length===0){ $('#list').html('暂无推荐历史，请先去“智能好书推荐”生成一次。'); return; }
+            var html='';
+            $.each(list, function(_, r){
+                var cover = r.cover ? ('<img class="cover" src="'+r.cover+'"/>') : '<div class="cover"></div>';
+                html += '<div class="book">'+cover+'<div class="meta">';
+                html += '<div class="name">'+(r.bookName||('bookId='+r.bookId))+
+                        '<span class="tag">'+(r.source||'')+'</span></div>';
+                html += '<div class="sub">'+(r.author||'')+' · '+(r.type||'')+'</div>';
+                html += '<div class="sub">score='+(r.score==null?0:r.score)+' · computedAt='+(r.computedAt||'')+'</div>';
+                html += '</div></div>';
+            });
+            $('#list').html(html);
+        });
+    });
+</script>
+</body>
+</html>

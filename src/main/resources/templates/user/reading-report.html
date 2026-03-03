@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="../javaex/pc/css/common.css" rel="stylesheet" />
+    <link href="../javaex/pc/css/skin/tina.css" rel="stylesheet" />
+    <script src="../javaex/pc/lib/jquery-1.7.2.min.js"></script>
+    <script src="../javaex/pc/js/javaex.min.js"></script>
+    <title>我的阅读报告</title>
+    <style>
+        body{background:#f5f7fa;padding:12px;}
+        .card{background:#fff;border-radius:8px;padding:16px;max-width:900px;}
+        .row{display:flex;gap:12px;margin:10px 0;}
+        .k{width:200px;color:#666;}
+        .v{color:#333;}
+        .actions{display:flex;gap:10px;align-items:center;margin:10px 0 16px;}
+    </style>
+</head>
+<body>
+<div class="card">
+    <h2>我的阅读报告</h2>
+    <div class="actions">
+        <select id="period" class="select" style="width:160px;height:36px;">
+            <option value="week">本周</option>
+            <option value="month">本月</option>
+        </select>
+        <button class="button green" onclick="load()">刷新</button>
+        <button class="button blue" onclick="build()">生成/更新</button>
+    </div>
+
+    <div id="content">加载中...</div>
+</div>
+
+<script>
+    function render(r){
+        if(!r){ $('#content').html('暂无数据'); return; }
+        var html='';
+        html += "<div class='row'><div class='k'>周期开始(periodStart)</div><div class='v'>"+(r.periodStart||'-')+"</div></div>";
+        html += "<div class='row'><div class='k'>周期结束(periodEnd)</div><div class='v'>"+(r.periodEnd||'-')+"</div></div>";
+        html += "<div class='row'><div class='k'>阅读本数(booksRead)</div><div class='v'>"+(r.booksRead==null?0:r.booksRead)+"</div></div>";
+        html += "<div class='row'><div class='k'>阅读页数(pagesRead)</div><div class='v'>"+(r.pagesRead==null?0:r.pagesRead)+"</div></div>";
+        html += "<div class='row'><div class='k'>平均阅读时长(avgSessionMinutes)</div><div class='v'>"+(r.avgSessionMinutes==null?0:r.avgSessionMinutes)+" 分钟</div></div>";
+        html += "<div class='row'><div class='k'>生成时间(createdAt)</div><div class='v'>"+(r.createdAt||'-')+"</div></div>";
+        $('#content').html(html);
+    }
+
+    function load(){
+        var p = $('#period').val();
+        $.get('/report/my/get', {period:p}, function(res){
+            if(res.code!==200){ javaex.message({content:res.msg||'加载失败', type:'error'}); return; }
+            render(res.data);
+        });
+    }
+
+    function build(){
+        var p = $('#period').val();
+        $.post('/report/my/build', {period:p}, function(res){
+            if(res.code===200){ javaex.message({content:'已生成', type:'success'}); render(res.data); }
+            else{ javaex.message({content:res.msg||'失败', type:'error'}); }
+        });
+    }
+
+    $(function(){ load(); });
+</script>
+</body>
+</html>

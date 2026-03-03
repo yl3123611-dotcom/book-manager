@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.book.manager.dao.ReadingReportMapper">
+
+    <resultMap id="ReadingReportMap" type="com.book.manager.entity.ReadingReport">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="books_read" property="booksRead"/>
+        <result column="pages_read" property="pagesRead"/>
+        <result column="avg_session_minutes" property="avgSessionMinutes"/>
+        <result column="period_start" property="periodStart"/>
+        <result column="period_end" property="periodEnd"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <select id="findByUserAndPeriod" resultMap="ReadingReportMap">
+        SELECT * FROM reading_report
+        WHERE user_id = #{userId} AND period_start = #{periodStart} AND period_end = #{periodEnd}
+        LIMIT 1
+    </select>
+
+    <insert id="insert" parameterType="com.book.manager.entity.ReadingReport" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO reading_report (user_id, books_read, pages_read, avg_session_minutes, period_start, period_end, created_at)
+        VALUES (#{userId}, #{booksRead}, #{pagesRead}, #{avgSessionMinutes}, #{periodStart}, #{periodEnd}, NOW(6))
+    </insert>
+
+    <update id="update" parameterType="com.book.manager.entity.ReadingReport">
+        UPDATE reading_report
+        SET books_read = #{booksRead},
+            pages_read = #{pagesRead},
+            avg_session_minutes = #{avgSessionMinutes},
+            created_at = NOW(6)
+        WHERE id = #{id}
+    </update>
+
+</mapper>

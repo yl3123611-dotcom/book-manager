@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>馆藏导航 - 找书</title>
+    <link href="../../javaex/pc/css/common.css" rel="stylesheet" />
+    <link href="../../javaex/pc/css/skin/tina.css" rel="stylesheet" />
+    <script src="../../javaex/pc/lib/jquery-1.7.2.min.js"></script>
+</head>
+<body>
+<div class="block">
+    <h2>馆藏导航 - 找书</h2>
+    <div class="main" style="display:flex; gap:20px;">
+        <div style="width:220px;">
+            <h4>楼层</h4>
+            <div id="floors"></div>
+        </div>
+        <div style="flex:1;">
+            <h4>书架</h4>
+            <div id="shelves"></div>
+            <h4 style="margin-top:12px">书架格</h4>
+            <div id="cells"></div>
+        </div>
+        <div style="width:320px;">
+            <h4>查书</h4>
+            <input id="keyword" class="text" placeholder="书名/作者/ISBN" style="width:260px" />
+            <button class="button" onclick="searchBook()">查找</button>
+            <div id="bookResult" style="margin-top:12px;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function renderFloors(list){ var html=''; for(var i=0;i<list.length;i++){ var f=list[i]; html+='<div style="padding:6px;cursor:pointer;" onclick="selectFloor('+f.id+')">'+f.name+'</div>'; } $('#floors').html(html);}
+    function renderShelves(list){ var html=''; for(var i=0;i<list.length;i++){ var s=list[i]; html+='<div style="padding:6px;cursor:pointer;" onclick="selectShelf('+s.id+')">'+s.code+' '+(s.name||'')+'</div>'; } $('#shelves').html(html);}
+    function renderCells(list){ var html=''; for(var i=0;i<list.length;i++){ var c=list[i]; html+='<div style="padding:6px;">层:'+c.layerNo+' 格:'+c.cellNo+'</div>'; } $('#cells').html(html);}
+
+    function selectFloor(id){ $('#shelves').html(''); $('#cells').html(''); $.get('/nav/shelves',{floorId:id},function(res){ if(res && res.code==200) renderShelves(res.data); }); }
+    function selectShelf(id){ $('#cells').html(''); $.get('/nav/cells',{shelfId:id},function(res){ if(res && res.code==200) renderCells(res.data); }); }
+
+    function searchBook(){ var kw=$('#keyword').val(); if(!kw) return; $.ajax({ url:'/book/list', type:'POST', contentType:'application/json', data: JSON.stringify({currPage:1,pageSize:10,keyword:kw}), success:function(res){ if(res && res.code==200){ var list=res.data.list || []; if(list.length==0) $('#bookResult').html('<div>未找到</div>'); else{ var b=list[0]; $.get('/nav/book-location',{bookId:b.id}, function(r){ if(r && r.code==200 && r.data){ var loc=r.data; $('#bookResult').html('<div>书名:'+b.name+'<br/>位置: 楼层:'+ (loc.floorName||loc.floorId) + ' 书架:'+ (loc.shelfCode||loc.shelfName) + '</div>'); }else{ $('#bookResult').html('<div>未绑定馆藏位置</div>'); } }); } } } }); }
+
+    $(document).ready(function(){ $.get('/nav/floors', function(res){ if(res && res.code==200) renderFloors(res.data); }); });
+</script>
+</body>
+</html>

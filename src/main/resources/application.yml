@@ -1,0 +1,86 @@
+# ---------------------------------------------  启动端口 ------------------------------------------------------- #
+server:
+  port: 8080
+
+spring:
+  # Jackson
+  jackson:
+    default-property-inclusion: non_null
+
+  # Thymeleaf
+  thymeleaf:
+    cache: false
+
+  # ⭐⭐⭐ 文件上传配置（解决 413 问题，必须） ⭐⭐⭐
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 5MB
+      max-request-size: 5MB
+
+  # Redis
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      #password: 123456
+
+  # 数据库配置（book_manager）
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/book_manager?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true&useSSL=false&allowMultiQueries=true
+    username: root
+    password: 12345678
+
+  # JPA
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    generate-ddl: true
+    # open-in-view: false
+
+# MyBatis
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true
+
+# LangChain4j
+langchain4j:
+  open-ai:
+    chat-model:
+      base-url: https://api.deepseek.com/v1
+      api-key: sk-f96965fc1f1a4c4b8491d571945979d9
+      model-name: deepseek-chat
+      log-requests: true
+      log-responses: true
+
+    streaming-chat-model:
+      base-url: https://api.deepseek.com/v1
+      api-key: sk-f96965fc1f1a4c4b8491d571945979d9
+      model-name: deepseek-chat
+      log-requests: true
+      log-responses: true
+
+    embedding-model:
+      base-url: https://api.siliconflow.cn/v1
+      api-key: sk-cjcltmjtgmicwoulrcmbgxxzyjtqwhvrgkhkjznuxboqtnjl
+      model-name: Qwen/Qwen3-Embedding-8B   # ✅ 改这里
+      log-requests: true
+      log-responses: true
+      max-segments-per-batch: 10
+
+
+# Logging
+logging:
+  level:
+    dev.langchain4j: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+
+# 本地文件上传目录（封面图片存储位置）
+file:
+  upload-dir: D:/biyesheji/upload/

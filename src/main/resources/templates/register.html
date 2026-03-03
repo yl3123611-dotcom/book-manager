@@ -1,0 +1,213 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <title>用户注册</title>
+  <style>
+    * { box-sizing: border-box; }
+    body, html { height: 100%; margin: 0; padding: 0; font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, sans-serif; }
+    .bg-wrap {
+      position: relative;
+      background: linear-gradient(135deg, #1890ff 0%, #36cfc9 100%);
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+    /* Animated background shapes */
+    .bg-wrap::before, .bg-wrap::after {
+      content: '';
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      z-index: 0;
+      animation: float 10s infinite ease-in-out;
+    }
+    .bg-wrap::before { top: -100px; left: -100px; animation-delay: 0s; }
+    .bg-wrap::after { bottom: -100px; right: -100px; animation-delay: -5s; }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(20px, 20px); }
+    }
+
+    .main-cont-wrap {
+      z-index: 1;
+      width: 400px;
+      padding: 40px;
+      background: #fff;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      border-radius: 12px;
+      position: relative;
+    }
+
+    .form-title { text-align: center; margin-bottom: 30px; }
+    .form-title > span { font-size: 24px; color: #333; font-weight: 600; }
+
+    .form-item { margin-bottom: 24px; position: relative; }
+    .form-item label { display: block; margin-bottom: 8px; font-size: 14px; color: #666; font-weight: 500;}
+
+    .form-input {
+      width: 100%;
+      padding: 12px 15px;
+      border: 1px solid #d9d9d9;
+      border-radius: 6px;
+      font-size: 14px;
+      color: #333;
+      transition: all 0.3s;
+      outline: none;
+      background: #fff;
+    }
+    .form-input:focus { border-color: #1890ff; box-shadow: 0 0 0 2px rgba(24,144,255,0.2); }
+    .form-input::placeholder { color: #ccc; }
+
+    .form-btn { margin-top: 30px; }
+    .ui-button {
+      display: block;
+      width: 100%;
+      padding: 12px 0;
+      text-align: center;
+      color: #fff;
+      background: linear-gradient(90deg, #1890ff, #36cfc9);
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 500;
+      border: 0;
+      outline: 0;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 4px 10px rgba(24,144,255,0.3);
+    }
+    .ui-button:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 15px rgba(24,144,255,0.4);
+    }
+    .ui-button:active { transform: translateY(0); }
+
+    .back-login { display: block; text-align: center; margin-top: 20px; color: #1890ff; font-size: 14px; text-decoration: none; transition: color 0.3s; }
+    .back-login:hover { color: #40a9ff; text-decoration: underline; }
+
+    /* Custom Tip Box */
+    .tip-box {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 20px;
+      border-radius: 4px;
+      color: #fff;
+      font-size: 14px;
+      z-index: 100;
+      display: none;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .tip-success { background: #52c41a; }
+    .tip-error { background: #ff4d4f; }
+  </style>
+</head>
+<body>
+<div class="bg-wrap">
+  <div class="main-cont-wrap login-model">
+    <!-- 自定义提示框（替代javaex.optTip） -->
+    <div class="tip-box" id="tipBox"></div>
+
+    <form id="form">
+      <div class="form-title">
+        <span>注册新账号</span>
+      </div>
+      <div class="form-item">
+        <label>账号</label>
+        <input type="text" class="form-input" id="uname" name="username" placeholder="请输入账号" />
+      </div>
+      <div class="form-item">
+        <label>密码</label>
+        <input type="password" class="form-input" name="password" id="pass" placeholder="请输入密码" />
+      </div>
+      <div class="form-btn">
+        <button type="button" class="ui-button" id="registerBtn">注 册</button>
+      </div>
+      <a href="/login" class="back-login">已有账号？返回登录</a>
+    </form>
+  </div>
+</div>
+
+<!-- 只保留jQuery（如果项目里没有，用CDN引入，避免路径问题） -->
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+<script type="text/javascript">
+  // 自定义提示框函数（替代javaex.optTip）
+  function showTip(content, type) {
+    var tipBox = $("#tipBox");
+    tipBox.text(content);
+    tipBox.removeClass("tip-success tip-error").addClass(type === "success" ? "tip-success" : "tip-error");
+    tipBox.fadeIn();
+    setTimeout(function() {
+      tipBox.fadeOut();
+    }, 2000);
+  }
+
+  // 自定义表单校验函数（替代javaex.verifyForm）
+  function verifyForm() {
+    var username = $("#uname").val().trim();
+    var password = $("#pass").val().trim();
+
+    // 账号校验
+    if (username === "") {
+      showTip("账号不能为空", "error");
+      return false;
+    }
+    // 密码校验
+    if (password === "") {
+      showTip("密码不能为空", "error");
+      return false;
+    }
+    if (password.length < 6) {
+      showTip("密码长度不能少于6位", "error");
+      return false;
+    }
+    return true;
+  }
+
+  // 注册按钮点击事件
+  $("#registerBtn").on("click", function(){
+    // 表单校验（改用自定义函数）
+    if (!verifyForm()) {
+      return;
+    }
+
+    var username = $("#uname").val().trim();
+    var password = $("#pass").val().trim();
+
+    // AJAX提交请求
+    $.ajax({
+      url: "/user/register",
+      type: "POST",
+      contentType: "application/json;charset=utf-8",
+      data: JSON.stringify({
+        "username": username,
+        "password": password
+      }),
+      success: function(result) {
+        if (result.code == 200) { // 注意：后端返回的是数字200，不是字符串"200"
+          showTip("注册成功，请登录", "success");
+          setTimeout(function() {
+            window.location.href = "/login";
+          }, 2000);
+        } else {
+          showTip(result.msg || "注册失败", "error");
+        }
+      },
+      error: function(xhr, status, error) {
+        console.log("请求错误：", status, error); // 控制台打印错误，方便排查
+        showTip("网络错误或服务器异常", "error");
+      }
+    });
+  });
+</script>
+</body>
+</html>

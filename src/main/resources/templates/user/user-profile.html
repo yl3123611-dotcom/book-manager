@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="../javaex/pc/css/common.css" rel="stylesheet" />
+    <link href="../javaex/pc/css/skin/tina.css" rel="stylesheet" />
+    <script src="../javaex/pc/lib/jquery-1.7.2.min.js"></script>
+    <script src="../javaex/pc/js/javaex.min.js"></script>
+    <title>我的用户画像</title>
+    <style>
+        body{background:#f5f7fa;padding:12px;}
+        .card{background:#fff;border-radius:8px;padding:16px;max-width:900px;}
+        .row{display:flex;gap:12px;margin:10px 0;}
+        .k{width:180px;color:#666;}
+        .v{color:#333;}
+        .hint{color:#999;font-size:12px;}
+    </style>
+</head>
+<body>
+<div class="card">
+    <h2>我的用户画像</h2>
+
+    <div class="row"><div class="k">年级(grade)</div><div class="v"><input id="grade" class="text" style="width:260px;" placeholder="例如：大三"/></div></div>
+    <div class="row"><div class="k">专业(majors)</div><div class="v"><input id="majors" class="text" style="width:360px;" placeholder="例如：计算机科学与技术"/></div></div>
+    <div class="row"><div class="k">兴趣(interests)</div><div class="v"><input id="interests" class="text" style="width:480px;" placeholder="例如：历史, 科幻, Java"/></div></div>
+    <div style="margin:8px 0 14px;"><button class="button blue" onclick="saveEditable()">保存</button></div>
+
+    <div id="content" class="hint">加载中...</div>
+    <div style="margin-top:14px;">
+        <button class="button green" onclick="recompute()">重新计算画像</button>
+    </div>
+</div>
+
+<script>
+    function render(p){
+        if(!p){ $('#content').html('<div class="hint">暂无画像数据</div>'); return; }
+        $('#grade').val(p.grade||'');
+        $('#majors').val(p.majors||'');
+        $('#interests').val(p.interests||'');
+        var html='';
+        html += "<div class='row'><div class='k'>活跃度(activeScore)</div><div class='v'>"+(p.activeScore==null?0:p.activeScore)+"</div></div>";
+        html += "<div class='row'><div class='k'>偏好分类(favoriteCategories)</div><div class='v'>"+(p.favoriteCategories||'-')+"</div></div>";
+        html += "<div class='row'><div class='k'>逾期率(overdueRate)</div><div class='v'>"+(p.overdueRate==null?0:p.overdueRate)+"</div></div>";
+        html += "<div class='row'><div class='k'>更新时间(updatedAt)</div><div class='v'>"+(p.updatedAt||'-')+"</div></div>";
+        $('#content').html(html);
+    }
+
+    function load(){
+        $.get('/profile/my/get', function(res){
+            if(res.code!==200){ javaex.message({content:res.msg||'加载失败', type:'error'}); return; }
+            render(res.data);
+        });
+    }
+
+    function recompute(){
+        $.post('/profile/my/recompute', {}, function(res){
+            if(res.code===200){ javaex.message({content:'已重新计算', type:'success'}); render(res.data); }
+            else{ javaex.message({content:res.msg||'失败', type:'error'}); }
+        });
+    }
+
+    function saveEditable(){
+        $.post('/profile/my/save', {
+            grade: $('#grade').val(),
+            majors: $('#majors').val(),
+            interests: $('#interests').val()
+        }, function(res){
+            if(res.code===200){ javaex.message({content:'保存成功', type:'success'}); render(res.data); }
+            else{ javaex.message({content:res.msg||'保存失败', type:'error'}); }
+        });
+    }
+
+    $(function(){ load(); });
+</script>
+</body>
+</html>

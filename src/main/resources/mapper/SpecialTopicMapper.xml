@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.book.manager.dao.SpecialTopicMapper">
+
+    <select id="listTopics" resultType="map">
+        SELECT id, slug, name, description, enabled, DATE_FORMAT(created_at,'%Y-%m-%d') as createdAt FROM special_topic WHERE enabled = 1 ORDER BY id DESC
+    </select>
+
+    <select id="findBySlug" resultType="map">
+        SELECT id, slug, name, description, enabled, DATE_FORMAT(created_at,'%Y-%m-%d') as createdAt FROM special_topic WHERE slug = #{slug} AND enabled = 1 LIMIT 1
+    </select>
+
+    <select id="listTopicBooks" resultType="map">
+        SELECT b.id, b.name, b.author, b.cover, b.publish, b.size
+        FROM special_topic_book tb
+        LEFT JOIN book b ON b.id = tb.book_id
+        WHERE tb.topic_id = #{topicId}
+        ORDER BY tb.sort ASC, tb.id ASC
+    </select>
+
+    <insert id="insertTopic">
+        INSERT INTO special_topic(slug, name, description, enabled, created_at) VALUES(#{slug}, #{name}, #{description}, 1, NOW())
+    </insert>
+
+    <insert id="addTopicBook">
+        INSERT IGNORE INTO special_topic_book(topic_id, book_id, sort, created_at) VALUES(#{topicId}, #{bookId}, #{sort}, NOW())
+    </insert>
+
+    <select id="listTopicsByBookId" resultType="map">
+        SELECT t.id, t.slug, t.name, t.description
+        FROM special_topic_book tb
+        INNER JOIN special_topic t ON t.id = tb.topic_id
+        WHERE tb.book_id = #{bookId} AND t.enabled = 1
+        ORDER BY tb.sort ASC, tb.id ASC
+    </select>
+
+    <delete id="removeTopicBook">
+        DELETE FROM special_topic_book WHERE topic_id = #{topicId} AND book_id = #{bookId}
+    </delete>
+
+</mapper>

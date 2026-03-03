@@ -1,0 +1,192 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="../../javaex/pc/css/icomoon.css" rel="stylesheet" />
+    <link href="../../javaex/pc/css/animate.css" rel="stylesheet" />
+    <link href="../../javaex/pc/css/common.css" rel="stylesheet" />
+    <link href="../../javaex/pc/css/skin/tina.css" rel="stylesheet" />
+    <script src="../../javaex/pc/lib/jquery-1.7.2.min.js"></script>
+    <script src="../../javaex/pc/js/common.js"></script>
+    <script src="../../javaex/pc/js/javaex.min.js"></script>
+    <script src="../../javaex/pc/js/javaex-formVerify.js"></script>
+    <title>图书搜索</title>
+    <style>
+        .search-layout{display:flex; gap:20px;}
+        .search-left{flex: 1;}
+        .search-right{width: 320px;}
+        .panel{background:#fff; border:1px solid #eee; border-radius:6px; padding:12px 14px; margin-bottom:14px;}
+        .panel h3{font-size:15px; margin:0 0 10px 0; color:#333;}
+        .tags{display:flex; flex-wrap:wrap; gap:8px;}
+        .tag{display:inline-block; padding:4px 8px; border-radius:12px; background:#f2f6fc; color:#409eff; cursor:pointer; font-size:12px;}
+        .rec-item{display:flex; gap:10px; padding:8px 0; border-bottom:1px dashed #eee; cursor:pointer;}
+        .rec-item:last-child{border-bottom:none;}
+        .rec-cover{width:46px; height:64px; background:#f5f7fa; border-radius:4px; overflow:hidden; flex-shrink:0;}
+        .rec-cover img{width:100%; height:100%; object-fit:cover;}
+        .rec-meta{flex:1;}
+        .rec-name{font-size:13px; font-weight:bold; color:#333; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+        .rec-author{font-size:12px; color:#888; margin-top:4px;}
+    </style>
+</head>
+<body>
+<div class="list-content">
+    <div class="block">
+        <h2>图书搜索</h2>
+        <div class="main">
+            <div class="input-group" style="margin-bottom: 12px;">
+                <input id="keyword" type="text" class="text" style="width: 420px" placeholder="搜索书名 / ISBN / 作者 / 分类 / 出版社" />
+                <button id="searchBtn" class="button blue" onclick="search();">搜索</button>
+            </div>
+
+            <div class="search-layout">
+                <div class="search-left">
+                    <table id="table" class="table color2">
+                        <thead>
+                        <tr align="center">
+                            <th>序号</th>
+                            <th>书名</th>
+                            <th>作者</th>
+                            <th>ISBN</th>
+                            <th>页数</th>
+                            <th>定价</th>
+                            <th>出版社</th>
+                            <th>出版时间</th>
+                            <th>库存</th>
+                            <th>分类</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody id="tbody"></tbody>
+                    </table>
+                    <div class="page">
+                        <ul id="page" class="pagination"></ul>
+                    </div>
+                </div>
+
+                <div class="search-right">
+                    <div class="panel">
+                        <h3>热门搜索</h3>
+                        <div id="hotTags" class="tags"></div>
+                    </div>
+                    <div class="panel">
+                        <h3>推荐图书</h3>
+                        <div id="recList"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(document).ready(function(){
+        rander(1,"",10);
+        loadHotSearch();
+        loadRecommends();
+    });
+
+    function rander(currPage,keyword,pageSize) {
+        var total = 0;
+        $.ajax({
+            type : "POST",
+            contentType: "application/json;charset=UTF-8",
+            url : "/book/list",
+            data : JSON.stringify({"currPage":currPage,"keyword": keyword,"pageSize": pageSize}),
+            success : function(result) {
+                var r = result.data;
+                currPage = r.currPage;
+                pageSize = r.pageSize;
+                total = r.total;
+
+                var array = r.list || [];
+                var text = "";
+                $.each(array,function(index,value){
+                    var num = pageSize * (currPage - 1) + index + 1;
+                    text+= "<tr align='center'>"+
+                        "<td>"+num+"</td>"+
+                        "<td>"+(value.name||"")+"</td>"+
+                        "<td>"+(value.author||"")+"</td>"+
+                        "<td>"+(value.isbn||"")+"</td>"+
+                        "<td>"+(value.pages||"")+"</td>"+
+                        "<td>"+(value.price==null?"":value.price)+"</td>"+
+                        "<td>"+(value.publish||"")+"</td>"+
+                        "<td>"+(value.publishTime||"")+"</td>"+
+                        "<td>"+(value.size==null?"":value.size)+"</td>"+
+                        "<td>"+(value.type||"")+"</td>"+
+                        "<td><button class='button blue empty' onclick='toDetail("+value.id+")'>详情</button></td>"+
+                        "</tr>";
+                });
+
+                $("#tbody").html(text);
+
+                var totalPage = Math.ceil(total/pageSize);
+                $("#page").empty();
+                javaex.page({
+                    id : "page",
+                    pageCount : totalPage,
+                    currentPage : currPage,
+                    perPageCount : pageSize,
+                    isShowJumpPage : false,
+                    totalNum : total,
+                    position : "center",
+                    callback : function(rtn) {
+                        rander(rtn.pageNum,keyword,rtn.perPageCount);
+                    }
+                });
+            }
+        });
+    }
+
+    function search() {
+        var keyword = $("#keyword").val();
+        rander(1,keyword,10);
+        // 搜索一次后刷新热门搜索（让新词更快出现）
+        loadHotSearch();
+    }
+
+    function toDetail(id){
+        window.location.href = "/book/detail-view?id="+id;
+    }
+
+    function loadHotSearch(){
+        $.get("/search/hot?size=12", function(res){
+            if(res && res.code===200){
+                var list = res.data || [];
+                var html = "";
+                $.each(list, function(i, k){
+                    var safe = String(k||"").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+                    html += "<span class='tag' onclick='useHotKeyword(\""+ safe.replace(/\"/g,'&quot;') +"\")'>"+safe+"</span>";
+                });
+                $("#hotTags").html(html || "<div style='color:#999;font-size:12px;'>暂无热门搜索</div>");
+            }
+        });
+    }
+
+    function useHotKeyword(k){
+        $("#keyword").val(k);
+        rander(1,k,10);
+    }
+
+    function loadRecommends(){
+        $.get("/home/recommends?size=6", function(res){
+            if(res && res.code===200){
+                var list = res.data || [];
+                var html = "";
+                $.each(list, function(i, b){
+                    var cover = b.cover ? b.cover : '/javaex/img/1.jpg';
+                    if (cover && cover.indexOf("/") !== 0 && cover.indexOf("http") !== 0) cover = "/" + cover;
+                    html += "<div class='rec-item' onclick='toDetail("+b.id+")'>"+
+                        "<div class='rec-cover'><img src='"+cover+"' onerror=\"this.src='/javaex/img/1.jpg'\"/></div>"+
+                        "<div class='rec-meta'>"+
+                        "<div class='rec-name' title='"+(b.name||"")+"'>"+(b.name||"")+"</div>"+
+                        "<div class='rec-author'>"+(b.author||"")+"</div>"+
+                        "</div>"+
+                        "</div>";
+                });
+                $("#recList").html(html || "<div style='color:#999;font-size:12px;'>暂无推荐</div>");
+            }
+        });
+    }
+</script>
+</body>
+</html>

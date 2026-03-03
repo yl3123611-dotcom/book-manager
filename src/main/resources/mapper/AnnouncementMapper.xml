@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.book.manager.dao.AnnouncementMapper">
+
+    <resultMap id="AnnouncementMap" type="com.book.manager.entity.Announcement">
+        <id column="id" property="id"/>
+        <result column="title" property="title"/>
+        <result column="content" property="content"/>
+        <result column="enabled" property="enabled"/>
+        <result column="pinned" property="pinned"/>
+        <result column="publish_time" property="publishTime"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        id, title, content, enabled, pinned, publish_time, created_by, created_at, updated_at
+    </sql>
+
+    <select id="selectTop" resultMap="AnnouncementMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM announcement
+        WHERE enabled = 1
+          AND (publish_time IS NULL OR publish_time &lt;= NOW())
+        ORDER BY pinned DESC, publish_time DESC, id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="listAll" resultMap="AnnouncementMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM announcement
+        ORDER BY pinned DESC, publish_time DESC, id DESC
+    </select>
+
+    <select id="listPage" resultMap="AnnouncementMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM announcement
+        ORDER BY pinned DESC, publish_time DESC, id DESC
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <select id="countAll" resultType="int">
+        SELECT COUNT(1) FROM announcement
+    </select>
+
+    <select id="selectById" resultMap="AnnouncementMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM announcement
+        WHERE id = #{id}
+        LIMIT 1
+    </select>
+
+    <insert id="insert" parameterType="com.book.manager.entity.Announcement" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO announcement (title, content, enabled, pinned, publish_time, created_by)
+        VALUES (#{title}, #{content}, #{enabled}, #{pinned}, #{publishTime}, #{createdBy})
+    </insert>
+
+    <update id="update" parameterType="com.book.manager.entity.Announcement">
+        UPDATE announcement
+        SET title = #{title},
+            content = #{content},
+            enabled = #{enabled},
+            pinned = #{pinned},
+            publish_time = #{publishTime}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM announcement WHERE id = #{id}
+    </delete>
+
+    <update id="setEnabled">
+        UPDATE announcement SET enabled = #{enabled} WHERE id = #{id}
+    </update>
+
+    <update id="setPinned">
+        UPDATE announcement SET pinned = #{pinned} WHERE id = #{id}
+    </update>
+
+</mapper>

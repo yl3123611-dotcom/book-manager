@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="/javaex/pc/css/common.css" rel="stylesheet" />
+    <link href="/javaex/pc/css/skin/tina.css" rel="stylesheet" />
+    <script src="/javaex/pc/lib/jquery-1.7.2.min.js"></script>
+    <script src="/javaex/pc/js/javaex.min.js"></script>
+    <title>座位时间段配额</title>
+    <style>
+        body{background:#f5f7fa;padding:12px;}
+        .card{background:#fff;border-radius:8px;padding:16px;}
+        .row{display:flex;gap:10px;align-items:center;margin-bottom:10px;}
+        input.text{height:34px;}
+    </style>
+</head>
+<body>
+<div class="card">
+    <h2>座位时间段配额</h2>
+
+    <div class="row">
+        <input id="slotDate" class="text" placeholder="slotDate: 2026-02-27" style="width:160px;">
+        <input id="slotStart" class="text" placeholder="slotStart: 2026-02-27 08:00:00" style="width:220px;">
+        <input id="slotEnd" class="text" placeholder="slotEnd: 2026-02-27 12:00:00" style="width:220px;">
+        <input id="room" class="text" placeholder="room: 1号阅览室" style="width:160px;">
+        <input id="maxCount" class="text" placeholder="最大预约数" style="width:120px;">
+        <button class="button green" onclick="save()">保存/更新</button>
+        <a class="button blue empty" href="javascript:parent.page('seat/seat-rule-config');">返回规则</a>
+    </div>
+
+    <table class="table color2">
+        <thead>
+        <tr align="center">
+            <th>slotDate</th>
+            <th>slotStart</th>
+            <th>slotEnd</th>
+            <th>room</th>
+            <th>reservedCount</th>
+            <th>maxCount</th>
+            <th style="width:120px;">操作</th>
+        </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+    </table>
+
+    <div style="margin-top:10px;color:#999;">
+        输入时间格式建议：slotDate=2026-02-27；slotStart/slotEnd=2026-02-27 08:00:00
+    </div>
+</div>
+
+<script>
+    $(function(){ load(); });
+
+    function load(){
+        $.get('/seat/rule/quota/list', function(res){
+            if(res.code!==200) return;
+            var list=res.data||[];
+            var html='';
+            $.each(list, function(_, q){
+                html += "<tr align='center'>";
+                html += "<td>"+(q.slotDate||'')+"</td>";
+                html += "<td>"+(q.slotStart||'')+"</td>";
+                html += "<td>"+(q.slotEnd||'')+"</td>";
+                html += "<td>"+(q.room||'')+"</td>";
+                html += "<td>"+(q.reservedCount==null?0:q.reservedCount)+"</td>";
+                html += "<td>"+(q.maxCount==null?0:q.maxCount)+"</td>";
+                html += "<td><button class='button red empty' onclick='del("+q.id+")'>删除</button></td>";
+                html += "</tr>";
+            });
+            $('#tbody').html(html);
+        });
+    }
+
+    function save(){
+        var data = {
+            slotDate: $('#slotDate').val(),
+            slotStart: $('#slotStart').val(),
+            slotEnd: $('#slotEnd').val(),
+            room: $('#room').val(),
+            maxCount: parseInt($('#maxCount').val()||'0')
+        };
+        $.ajax({
+            url:'/seat/rule/quota/save',
+            type:'POST',
+            contentType:'application/json;charset=UTF-8',
+            data: JSON.stringify(data),
+            success:function(res){
+                if(res.code===200){ javaex.message({content:'保存成功', type:'success'}); load(); }
+                else{ javaex.message({content:res.msg||'保存失败', type:'error'}); }
+            }
+        });
+    }
+
+    function del(id){
+        $.post('/seat/rule/quota/delete', {id:id}, function(res){
+            if(res.code===200){ javaex.message({content:'删除成功', type:'success'}); load(); }
+            else{ javaex.message({content:res.msg||'删除失败', type:'error'}); }
+        });
+    }
+</script>
+</body>
+</html>

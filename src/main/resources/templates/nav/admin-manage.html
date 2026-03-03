@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>馆藏管理</title>
+    <link href="../../javaex/pc/css/common.css" rel="stylesheet" />
+    <link href="../../javaex/pc/css/skin/tina.css" rel="stylesheet" />
+    <script src="../../javaex/pc/lib/jquery-1.7.2.min.js"></script>
+</head>
+<body>
+<div class="block">
+    <h2>馆藏管理</h2>
+    <div class="main">
+        <div style="display:flex; gap:20px;">
+            <div style="width:260px;">
+                <h3>楼层</h3>
+                <div id="floorList"></div>
+                <h4>添加楼层</h4>
+                名称: <input id="fName" class="text" style="width:140px" />
+                排序: <input id="fSort" class="text" style="width:60px;" />
+                <button onclick="addFloor()" class="button green">添加</button>
+            </div>
+
+            <div style="flex:1;">
+                <h3>书架（选中楼层后显示）</h3>
+                <div id="shelfList"></div>
+                <div style="margin-top:10px;">
+                    <b>添加书架：</b>
+                    code <input id="sCode" class="text" style="width:90px" />
+                    name <input id="sName" class="text" style="width:120px" />
+                    x <input id="sX" class="text" style="width:60px" />
+                    y <input id="sY" class="text" style="width:60px" />
+                    <button class="button blue" onclick="addShelf()">添加</button>
+                </div>
+
+                <h3 style="margin-top:16px;">格位（选中书架后显示）</h3>
+                <div id="cellList"></div>
+                <div style="margin-top:10px;">
+                    <b>添加格位：</b>
+                    layer <input id="cLayer" class="text" style="width:60px" />
+                    cell <input id="cCell" class="text" style="width:60px" />
+                    <button class="button blue" onclick="addCell()">添加</button>
+                </div>
+            </div>
+
+            <div style="width:360px;">
+                <h3>绑定图书位置</h3>
+                <div style="color:#999;font-size:12px;">步骤：选楼层→选书架→选格位→搜索图书→点击绑定</div>
+                <div style="margin-top:10px;">
+                    <input id="kw" class="text" style="width:220px" placeholder="书名/作者/ISBN" />
+                    <button class="button" onclick="searchBook()">搜索</button>
+                </div>
+                <div id="bookList" style="margin-top:10px;"></div>
+                <div id="bindInfo" style="margin-top:10px;color:#409eff;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    var currentFloorId=null, currentShelfId=null, currentCellId=null;
+
+    function renderFloors(list){
+        var html='';
+        for(var i=0;i<list.length;i++){
+            var f=list[i];
+            html += '<div style="padding:8px;border-bottom:1px solid #eee;cursor:pointer;" onclick="selectFloor('+f.id+')">'+f.name+'</div>';
+        }
+        $('#floorList').html(html);
+    }
+
+    function loadFloors(){
+        $.get('/nav/admin/floors', function(res){ if(res && res.code==200) renderFloors(res.data||[]); });
+    }
+
+    function addFloor(){
+        var name=$('#fName').val(); var sort=parseInt($('#fSort').val()||'0',10);
+        if(!name){ alert('请输入名称'); return; }
+        $.post('/nav/admin/floor/add',{name:name,sort:sort}, function(res){ if(res && res.code==200){ $('#fName').val(''); loadFloors(); } else alert('添加失败'); });
+    }
+
+    function selectFloor(id){
+        currentFloorId=id; currentShelfId=null; currentCellId=null;
+        $('#bindInfo').text('已选楼层: '+id);
+        loadShelves();
+        $('#cellList').html('');
+    }
+
+    function loadShelves(){
+        if(!currentFloorId){ $('#shelfList').html(''); return; }
+        $.get('/nav/shelves',{floorId:currentFloorId}, function(res){
+            if(res && res.code==200){
+                var list=res.data||[]; var html='';
+                for(var i=0;i<list.length;i++){
+                    var s=list[i];
+                    html += '<div style="padding:8px;border-bottom:1px dashed #eee;cursor:pointer;" onclick="selectShelf('+s.id+')">'+s.code+' '+(s.name||'')+' (id='+s.id+')</div>';
+                }
+                $('#shelfList').html(html);
+            }
+        });
+    }
+
+    function addShelf(){
+        if(!currentFloorId){ alert('请先选楼层'); return; }
+        var code=$('#sCode').val(); if(!code){ alert('请输入code'); return; }
+        var name=$('#sName').val();
+        var x=$('#sX').val()?parseInt($('#sX').val(),10):null;
+        var y=$('#sY').val()?parseInt($('#sY').val(),10):null;
+        $.post('/nav/admin/shelf/add',{floorId:currentFloorId, code:code, name:name, x:x, y:y}, function(res){ if(res && res.code==200){ loadShelves(); } else alert('添加失败'); });
+    }
+
+    function selectShelf(id){
+        currentShelfId=id; currentCellId=null;
+        $('#bindInfo').text('已选楼层: '+currentFloorId+' / 书架: '+id);
+        loadCells();
+    }
+
+    function loadCells(){
+        if(!currentShelfId){ $('#cellList').html(''); return; }
+        $.get('/nav/cells',{shelfId:currentShelfId}, function(res){
+            if(res && res.code==200){
+                var list=res.data||[]; var html='';
+                for(var i=0;i<list.length;i++){
+                    var c=list[i];
+                    html += '<div style="padding:8px;border-bottom:1px dotted #eee;cursor:pointer;" onclick="selectCell('+c.id+')">层 '+c.layerNo+' / 格 '+c.cellNo+' (id='+c.id+')</div>';
+                }
+                $('#cellList').html(html);
+            }
+        });
+    }
+
+    function addCell(){
+        if(!currentShelfId){ alert('请先选书架'); return; }
+        var layer=parseInt($('#cLayer').val()||'0',10);
+        var cell=parseInt($('#cCell').val()||'0',10);
+        if(layer<=0||cell<=0){ alert('layer/cell 需大于0'); return; }
+        $.post('/nav/admin/cell/add',{shelfId:currentShelfId, layerNo:layer, cellNo:cell}, function(res){ if(res && res.code==200){ loadCells(); } else alert('添加失败'); });
+    }
+
+    function selectCell(id){
+        currentCellId=id;
+        $('#bindInfo').text('已选楼层: '+currentFloorId+' / 书架: '+currentShelfId+' / 格位: '+id);
+    }
+
+    function searchBook(){
+        var kw=$('#kw').val();
+        $.ajax({ url:'/book/list', type:'POST', contentType:'application/json;charset=UTF-8', data: JSON.stringify({currPage:1,pageSize:10,keyword:kw}),
+            success:function(res){
+                if(res && res.code==200){
+                    var list=(res.data && res.data.list) ? res.data.list : [];
+                    var html='';
+                    for(var i=0;i<list.length;i++){
+                        var b=list[i];
+                        html += '<div style="padding:8px;border-bottom:1px solid #eee;">'+b.name+' (id='+b.id+')'
+                            + ' <button class="button small" onclick="bindBook('+b.id+')">绑定</button></div>';
+                    }
+                    $('#bookList').html(html || '<div>无结果</div>');
+                }
+            }
+        });
+    }
+
+    function bindBook(bookId){
+        if(!currentFloorId||!currentShelfId||!currentCellId){ alert('请先选楼层/书架/格位'); return; }
+        $.post('/nav/admin/bind',{bookId:bookId,floorId:currentFloorId,shelfId:currentShelfId,cellId:currentCellId}, function(res){
+            if(res && res.code==200){ alert('绑定成功'); }
+            else alert('绑定失败');
+        });
+    }
+
+    $(document).ready(function(){ loadFloors(); });
+</script>
+</body>
+</html>

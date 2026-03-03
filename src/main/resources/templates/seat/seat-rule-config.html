@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="/javaex/pc/css/common.css" rel="stylesheet" />
+    <link href="/javaex/pc/css/skin/tina.css" rel="stylesheet" />
+    <script src="/javaex/pc/lib/jquery-1.7.2.min.js"></script>
+    <script src="/javaex/pc/js/javaex.min.js"></script>
+    <title>座位预约规则配置</title>
+    <style>
+        body{background:#f5f7fa;padding:12px;}
+        .card{background:#fff;border-radius:8px;padding:16px;max-width:980px;}
+        .row{display:flex;gap:12px;align-items:center;margin:10px 0;}
+        .row label{width:220px;color:#555;}
+        input.text{width:200px;height:34px;}
+    </style>
+</head>
+<body>
+<div class="card">
+    <h2>座位预约规则配置</h2>
+    <div id="form"></div>
+
+    <div style="margin-top:16px;">
+        <button class="button green" onclick="save()">保存</button>
+        <a class="button blue empty" href="javascript:parent.page('seat/seat-slot-quota');">去配置配额</a>
+    </div>
+</div>
+
+<script>
+    var cfg = {};
+    $(function(){
+        $.get('/seat/rule/get', function(res){
+            if(res.code!==200){ javaex.message({content:res.msg||'加载失败', type:'error'}); return; }
+            cfg = res.data || {};
+            render();
+        });
+    });
+
+    function field(key, label){
+        var v = (cfg[key]===undefined||cfg[key]===null)?'':cfg[key];
+        return "<div class='row'><label>"+label+"</label><input class='text' id='"+key+"' value='"+v+"'></div>";
+    }
+
+    function render(){
+        var html='';
+        html += field('futureDaysLimit','最多可预约未来N天');
+        html += field('minDurationMinutes','最短预约时长(分钟)');
+        html += field('maxDurationMinutes','最长预约时长(分钟)');
+        html += field('dailyLimitPerUser','每日最大预约次数');
+        html += field('activeLimitPerUser','同时最多有效预约数');
+        html += field('checkinGraceMinutes','签到宽限(分钟)');
+        html += field('tempLeaveMaxMinutes','暂离最长(分钟)');
+        html += field('maxOverlapPerSlot','同一时段同一座位最多预约数');
+        html += field('violationLimit','违约次数上限');
+        html += field('banDays','违约封禁天数');
+        $('#form').html(html);
+    }
+
+    function save(){
+        var data = {
+            futureDaysLimit: parseInt($('#futureDaysLimit').val()||'0'),
+            minDurationMinutes: parseInt($('#minDurationMinutes').val()||'0'),
+            maxDurationMinutes: parseInt($('#maxDurationMinutes').val()||'0'),
+            dailyLimitPerUser: parseInt($('#dailyLimitPerUser').val()||'0'),
+            activeLimitPerUser: parseInt($('#activeLimitPerUser').val()||'0'),
+            checkinGraceMinutes: parseInt($('#checkinGraceMinutes').val()||'0'),
+            tempLeaveMaxMinutes: parseInt($('#tempLeaveMaxMinutes').val()||'0'),
+            maxOverlapPerSlot: parseInt($('#maxOverlapPerSlot').val()||'0'),
+            violationLimit: parseInt($('#violationLimit').val()||'0'),
+            banDays: parseInt($('#banDays').val()||'0')
+        };
+        $.ajax({
+            url:'/seat/rule/save',
+            type:'POST',
+            contentType:'application/json;charset=UTF-8',
+            data: JSON.stringify(data),
+            success:function(res){
+                if(res.code===200) javaex.message({content:'保存成功', type:'success'});
+                else javaex.message({content:res.msg||'保存失败', type:'error'});
+            }
+        });
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="../../javaex/pc/css/common.css" rel="stylesheet" />
+    <link href="../../javaex/pc/css/skin/tina.css" rel="stylesheet" />
+    <script src="../../javaex/pc/lib/jquery-1.7.2.min.js"></script>
+    <script src="../../javaex/pc/js/javaex.min.js"></script>
+    <title>首页轮播管理</title>
+    <style>
+        body{background:#f5f7fa;padding:12px;}
+        .card{background:#fff;border-radius:8px;padding:16px;}
+        .img{width:180px;height:80px;object-fit:cover;border:1px solid #eee;border-radius:6px;}
+        .row{display:flex;gap:10px;align-items:center;margin-bottom:10px;}
+        input.text{height:34px;}
+    </style>
+</head>
+<body>
+<div class="card">
+    <h2>首页轮播管理</h2>
+
+    <div class="row">
+        <input id="title" class="text" placeholder="标题(可选)" style="width:180px;">
+        <input id="linkUrl" class="text" placeholder="跳转链接(可选)" style="width:260px;">
+        <input id="sort" class="text" placeholder="排序(数字)" style="width:120px;">
+        <input id="imageUrl" class="text" placeholder="图片地址(上传后自动填充)" style="width:320px;" readonly>
+        <button class="button blue" onclick="uploadImg()">上传图片</button>
+        <button class="button green" onclick="save()">保存</button>
+    </div>
+
+    <input id="id" type="hidden">
+
+    <table class="table color2">
+        <thead>
+        <tr align="center">
+            <th>预览</th>
+            <th>标题</th>
+            <th>链接</th>
+            <th>排序</th>
+            <th>启用</th>
+            <th style="width:220px;">操作</th>
+        </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+    </table>
+</div>
+
+<input id="file" type="file" style="display:none;" accept="image/*">
+
+<script>
+    $(function(){ load(); });
+
+    function load(){
+        $.get("/admin/banner/list", function(res){
+            var list = res.data || [];
+            var html = "";
+            $.each(list, function(_, b){
+                html += "<tr align='center'>";
+                html += "<td><img class='img' src='"+ b.imageUrl +"' onerror=\"this.src='/javaex/img/1.jpg'\"></td>";
+                html += "<td>"+ (b.title||"-") +"</td>";
+                html += "<td>"+ (b.linkUrl||"-") +"</td>";
+                html += "<td>"+ (b.sort==null?0:b.sort) +"</td>";
+                html += "<td>"+ (b.enabled===1?"是":"否") +"</td>";
+                html += "<td>"
+                    + "<button class='button blue empty' onclick='edit("+JSON.stringify(b).replace(/"/g,'&quot;')+")'>编辑</button> "
+                    + "<button class='button yellow empty' onclick='toggle("+b.id+","+(b.enabled===1?0:1)+")'>"+(b.enabled===1?"禁用":"启用")+"</button> "
+                    + "<button class='button red empty' onclick='del("+b.id+")'>删除</button>"
+                    + "</td>";
+                html += "</tr>";
+            });
+            $("#tbody").html(html);
+        });
+    }
+
+    function edit(b){
+        $("#id").val(b.id);
+        $("#title").val(b.title||"");
+        $("#linkUrl").val(b.linkUrl||"");
+        $("#sort").val(b.sort==null?0:b.sort);
+        $("#imageUrl").val(b.imageUrl||"");
+    }
+
+    function uploadImg(){
+        $("#file").val("");
+        $("#file").click();
+    }
+
+    $("#file").on("change", function(){
+        var f = this.files[0];
+        if(!f) return;
+        var form = new FormData();
+        form.append("file", f);
+
+        $.ajax({
+            url: "/book/upload", // ✅ 复用你已有的上传接口，返回 /upload/xxx.png
+            type: "POST",
+            data: form,
+            processData: false,
+            contentType: false,
+            success: function(res){
+                if(res.code === 200){
+                    $("#imageUrl").val(res.data);
+                    javaex.message({content:"上传成功", type:"success"});
+                }else{
+                    javaex.message({content:res.msg||"上传失败", type:"error"});
+                }
+            }
+        });
+    });
+
+    function save(){
+        var data = {
+            id: $("#id").val() ? parseInt($("#id").val()) : null,
+            title: $("#title").val(),
+            linkUrl: $("#linkUrl").val(),
+            sort: $("#sort").val() ? parseInt($("#sort").val()) : 0,
+            enabled: 1,
+            imageUrl: $("#imageUrl").val()
+        };
+        if(!data.imageUrl){
+            javaex.message({content:"请先上传图片", type:"error"});
+            return;
+        }
+
+        $.ajax({
+            url: "/admin/banner/save",
+            type: "POST",
+            contentType: "application/json;charset=UTF-8",
+            data: JSON.stringify(data),
+            success: function(res){
+                if(res.code===200){
+                    javaex.message({content:"保存成功", type:"success"});
+                    $("#id").val(""); $("#title").val(""); $("#linkUrl").val(""); $("#sort").val(""); $("#imageUrl").val("");
+                    load();
+                }else{
+                    javaex.message({content:res.msg||"保存失败", type:"error"});
+                }
+            }
+        });
+    }
+
+    function del(id){
+        $.get("/admin/banner/delete", {id:id}, function(res){
+            if(res.code===200){ javaex.message({content:"删除成功", type:"success"}); load(); }
+            else{ javaex.message({content:res.msg||"删除失败", type:"error"}); }
+        });
+    }
+
+    function toggle(id, enabled){
+        $.get("/admin/banner/enabled", {id:id, enabled:enabled}, function(res){
+            if(res.code===200){ javaex.message({content:"操作成功", type:"success"}); load(); }
+            else{ javaex.message({content:res.msg||"操作失败", type:"error"}); }
+        });
+    }
+</script>
+</body>
+</html>

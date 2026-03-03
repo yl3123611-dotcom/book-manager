@@ -1,0 +1,173 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <meta charset="utf-8">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link href="../javaex/pc/css/icomoon.css" rel="stylesheet" />
+    <link href="../javaex/pc/css/animate.css" rel="stylesheet" />
+    <link href="../javaex/pc/css/common.css" rel="stylesheet" />
+    <link href="../javaex/pc/css/skin/tina.css" rel="stylesheet" />
+    <script src="../javaex/pc/lib/jquery-1.7.2.min.js"></script>
+    <script src="../javaex/pc/js/common.js"></script>
+    <script src="../javaex/pc/js/javaex.min.js"></script>
+    <script src="../javaex/pc/js/javaex-formVerify.js"></script>
+    <title>后台管理</title>
+    <style>
+        * { box-sizing: border-box; }
+        body, html { height: 100%; margin: 0; padding: 0; font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, sans-serif; }
+        .bg-wrap {
+            position: relative;
+            background: linear-gradient(135deg, #1890ff 0%, #36cfc9 100%);
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        /* Animated background shapes */
+        .bg-wrap::before, .bg-wrap::after {
+            content: '';
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            z-index: 0;
+            animation: float 10s infinite ease-in-out;
+        }
+        .bg-wrap::before { top: -100px; left: -100px; animation-delay: 0s; }
+        .bg-wrap::after { bottom: -100px; right: -100px; animation-delay: -5s; }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(20px, 20px); }
+        }
+
+        .main-cont-wrap {
+            z-index: 1;
+            width: 400px;
+            padding: 40px;
+            background: #fff;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            position: relative;
+        }
+        .form-title { text-align: center; margin-bottom: 30px; }
+        .form-title > span { font-size: 24px; color: #333; font-weight: 600; }
+
+        .form-item { margin-bottom: 24px; position: relative; }
+        .form-item label { display: block; margin-bottom: 8px; font-size: 14px; color: #666; font-weight: 500;}
+        .form-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #d9d9d9;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #333;
+            transition: all 0.3s;
+            outline: none;
+            background: #fff;
+        }
+        .form-input:focus { border-color: #1890ff; box-shadow: 0 0 0 2px rgba(24,144,255,0.2); }
+        .form-input::placeholder { color: #ccc; }
+
+        .checkbox-item { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; font-size: 14px; color: #666; }
+        .checkbox-item input { margin-right: 6px; vertical-align: middle; }
+
+        .form-btn { margin-top: 10px; }
+        .ui-button {
+            display: block;
+            width: 100%;
+            padding: 12px 0;
+            text-align: center;
+            color: #fff;
+            background: linear-gradient(90deg, #1890ff, #36cfc9);
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            border: 0;
+            outline: 0;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 10px rgba(24,144,255,0.3);
+        }
+        .ui-button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 15px rgba(24,144,255,0.4);
+        }
+        .ui-button:active { transform: translateY(0); }
+
+        .reg-link { display: block; text-align: center; margin-top: 20px; color: #1890ff; font-size: 14px; text-decoration: none; transition: color 0.3s; }
+        .reg-link:hover { color: #40a9ff; text-decoration: underline; }
+    </style>
+</head>
+<body>
+<div class="bg-wrap">
+    <div class="main-cont-wrap login-model">
+        <form id="form">
+            <div class="form-title">
+                <span>图书管理系统</span>
+            </div>
+            <div class="form-item">
+                <label>账号</label>
+                <input type="text" class="form-input" id="uname" name="loginName" placeholder="请输入账号" />
+            </div>
+            <div class="form-item">
+                <label>密码</label>
+                <input type="password" class="form-input" name="password" id="pass" placeholder="请输入密码" />
+            </div>
+            <div class="checkbox-item">
+                <label style="margin:0; font-weight: normal; cursor: pointer;">
+                    <input type="checkbox" id="remember" name="remember" /> 记住我
+                </label>
+            </div>
+            <div class="form-btn">
+                <button type="button" class="ui-button" id="save">登 录</button>
+            </div>
+            <a href="/register" class="reg-link">没有账号？立即注册</a>
+        </form>
+    </div>
+</div>
+<script type="text/javascript">
+    // 登录
+    $("#save").on("click", function(){
+        var username =  $("#uname").val();
+        var password =  $("#pass").val();
+        // 获取复选框状态，如果是选中则传true/on，否则不传或传false
+        var remember = $("#remember").is(":checked");
+
+        $.ajax({
+            url: "/user/login",
+            type: "POST",
+            data: {
+                "username": username,
+                "password": password,
+                "remember": remember
+            },
+            dataType: "json",
+            success: function(result) {
+                // ✅ 修复：直接判断后端返回的 code
+                if (result.code == 200) {
+                    // 登录成功 跳转首页
+                    window.location.href = "/index";
+                } else {
+                    // 登录失败
+                    javaex.optTip({
+                        content : result.msg || "用户名或密码错误!",
+                        type : "error"
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                // 处理网络错误或后端异常
+                javaex.optTip({
+                    content : "系统错误，请稍后重试",
+                    type : "error"
+                });
+            }
+        });
+    });
+</script>
+</body>
+</html>

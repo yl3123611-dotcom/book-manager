@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>阅览室管理</title>
+    <link href="/javaex/pc/css/common.css" rel="stylesheet" />
+    <link href="/javaex/pc/css/skin/tina.css" rel="stylesheet" />
+    <script src="/javaex/pc/lib/jquery-1.7.2.min.js"></script>
+    <script src="/javaex/pc/js/javaex.min.js"></script>
+    <style>
+        body { background-color: #f5f7fa; }
+        .main-card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        }
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #ebeef5;
+        }
+        .page-title { font-size: 18px; font-weight: bold; color: #303133; }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #66b1ff 0%, #409eff 100%);
+            color: #fff; border: none; padding: 8px 20px;
+            border-radius: 4px; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(64,158,255,0.3);
+        }
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-danger {
+            background: #fff; border: 1px solid #f56c6c; color: #f56c6c;
+            padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;
+        }
+        .btn-danger:hover { background: #f56c6c; color: #fff; }
+        .btn-warning {
+            background: #fff; border: 1px solid #e6a23c; color: #e6a23c;
+            padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;
+        }
+        .btn-warning:hover { background: #e6a23c; color: #fff; }
+        .btn-success {
+            background: #fff; border: 1px solid #67c23a; color: #67c23a;
+            padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;
+        }
+        .btn-success:hover { background: #67c23a; color: #fff; }
+        .btn-info {
+            background: #fff; border: 1px solid #909399; color: #909399;
+            padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;
+        }
+        .btn-info:hover { background: #909399; color: #fff; }
+
+        /* 表格 */
+        .custom-table { width: 100%; border-collapse: collapse; }
+        .custom-table th {
+            background-color: #f5f7fa; color: #909399; font-weight: 500;
+            padding: 12px 10px; text-align: center; border-bottom: 1px solid #ebeef5;
+        }
+        .custom-table td {
+            padding: 12px 10px; color: #606266; text-align: center;
+            border-bottom: 1px solid #ebeef5;
+        }
+        .custom-table tr:hover td { background-color: #f9fafc; }
+
+        /* 状态标签 */
+        .status-enabled {
+            background: #f0f9eb; color: #67c23a;
+            padding: 4px 10px; border-radius: 12px; font-size: 12px;
+        }
+        .status-disabled {
+            background: #f4f4f5; color: #909399;
+            padding: 4px 10px; border-radius: 12px; font-size: 12px;
+        }
+
+        /* 弹窗表单 */
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #606266;
+            font-size: 14px;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #dcdfe6;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .form-group input:focus, .form-group select:focus {
+            border-color: #409eff;
+            outline: none;
+        }
+
+        /* 座位数量标签 */
+        .seat-count {
+            background: #ecf5ff;
+            color: #409eff;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+<div class="list-content">
+    <div class="block">
+        <div class="main-card">
+            <div class="header-row">
+                <div class="page-title">
+                    <i class="icon-library" style="margin-right: 8px; color: #409eff;"></i>阅览室管理
+                </div>
+                <button class="btn-primary" onclick="showAddRoomDialog()">
+                    <i class="icon-plus"></i> 添加阅览室
+                </button>
+            </div>
+
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>阅览室名称</th>
+                        <th>位置</th>
+                        <th>座位数</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="roomTableBody">
+                    <tr th:each="room : ${rooms}">
+                        <td th:text="${room.id}">1</td>
+                        <td th:text="${room.name}" style="font-weight: bold;">1号阅览室</td>
+                        <td th:text="${room.location ?: '-'}">一楼</td>
+                        <td>
+                            <span class="seat-count" th:text="${room.size} + ' 个'">0 个</span>
+                        </td>
+                        <td>
+                            <span th:if="${room.enabled == 1}" class="status-enabled">● 启用</span>
+                            <span th:if="${room.enabled != 1}" class="status-disabled">● 禁用</span>
+                        </td>
+                        <td>
+                            <button class="btn-warning"
+                                    th:attr="data-id=${room.id},data-name=${room.name},data-location=${room.location}"
+                                    onclick="editRoom(this)">
+                                <i class="icon-pencil"></i> 编辑
+                            </button>
+
+                            <button th:if="${room.enabled == 1}" class="btn-info"
+                                    th:attr="data-id=${room.id}"
+                                    onclick="toggleRoom(this)">
+                                <i class="icon-eye-blocked"></i> 禁用
+                            </button>
+
+                            <button th:if="${room.enabled != 1}" class="btn-success"
+                                    th:attr="data-id=${room.id}"
+                                    onclick="toggleRoom(this)">
+                                <i class="icon-eye"></i> 启用
+                            </button>
+
+                            <button class="btn-danger" th:onclick="'deleteRoom(' + ${room.id} + ')'">
+                                <i class="icon-bin"></i> 删除
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div th:if="${#lists.isEmpty(rooms)}" style="text-align: center; color: #999; padding: 50px;">
+                暂无阅览室数据，请先添加阅览室
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加阅览室弹窗 -->
+<div id="addRoomDialog" style="display: none; padding: 20px;">
+    <div class="form-group">
+        <label>阅览室名称 *</label>
+        <input type="text" id="roomName" placeholder="例如：1号阅览室">
+    </div>
+    <div class="form-group">
+        <label>位置</label>
+        <input type="text" id="roomLocation" placeholder="例如：一楼东侧">
+    </div>
+</div>
+
+<!-- 编辑阅览室弹窗 -->
+<div id="editRoomDialog" style="display: none; padding: 20px;">
+    <input type="hidden" id="editRoomId">
+    <div class="form-group">
+        <label>阅览室名称 *</label>
+        <input type="text" id="editRoomName">
+    </div>
+    <div class="form-group">
+        <label>位置</label>
+        <input type="text" id="editRoomLocation">
+    </div>
+</div>
+
+<script>
+
+    function showAddRoomDialog() {
+        javaex.confirm({
+            title: "添加阅览室",
+            content: $("#addRoomDialog").html(),   // 这里保留 html 字符串是可以的
+            confirmName: "确定添加",
+            cancelName: "取消",
+            callback: "doAddRoom()"
+        });
+    }
+
+    function doAddRoom() {
+        // confirm 生成的弹窗 DOM class 是 ex-dialog
+        var $dlg = $(".ex-dialog:visible").last();
+        var name = $dlg.find("#roomName").val();
+        var roomLocation = $dlg.find("#roomLocation").val();
+
+        if (!name) {
+            javaex.optTip({ content: "请输入阅览室名称", type: "error" });
+            return false; // 注意 confirm 回调里返回 false 可以阻止关闭
+        }
+
+        $.ajax({
+            url: '/seat/admin/addRoom',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ name: name, location: roomLocation, enabled: 1 }),
+            success: function(res) {
+                if (res.code == 200) {
+                    javaex.optTip({ content: "添加成功", type: "success" });
+                    setTimeout(function(){ window.location.reload(); }, 500);
+                } else {
+                    javaex.optTip({ content: res.msg || "添加失败", type: "error" });
+                }
+            }
+        });
+
+        return false; // 一般也返回 false，避免 confirm 自动关闭太快
+    }
+
+
+    function editRoom(btn){
+        var id = $(btn).attr("data-id");
+        var name = $(btn).attr("data-name");
+        var loc = $(btn).attr("data-location");
+
+        javaex.confirm({
+            title: "编辑阅览室",
+            content: $("#editRoomDialog").html(),
+            confirmName: "保存",
+            cancelName: "取消",
+            callback: "doEditRoom()"
+        });
+
+        setTimeout(function(){
+            var $dlg = $(".ex-dialog:visible").last();
+            $dlg.find("#editRoomId").val(id);
+            $dlg.find("#editRoomName").val(name || "");
+            $dlg.find("#editRoomLocation").val(loc && loc !== "null" ? loc : "");
+        }, 0);
+    }
+
+    function doEditRoom() {
+        var $dlg = $(".ex-dialog:visible").last();
+        var id = $dlg.find("#editRoomId").val();
+        var name = $dlg.find("#editRoomName").val();
+        var roomLocation = $dlg.find("#editRoomLocation").val();
+
+        if (!name) {
+            javaex.optTip({ content: "请输入阅览室名称", type: "error" });
+            return false;
+        }
+
+        $.ajax({
+            url: '/seat/admin/updateRoom',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ id: id, name: name, location: roomLocation, enabled: 1 }),
+            success: function(res) {
+                if (res.code == 200) {
+                    javaex.optTip({ content: "更新成功", type: "success" });
+                    setTimeout(function(){ window.location.reload(); }, 500);
+                } else {
+                    javaex.optTip({ content: res.msg || "更新失败", type: "error" });
+                }
+            }
+        });
+
+        return false;
+    }
+
+
+    function toggleRoom(btn) {
+        var id = $(btn).attr("data-id");
+        $.post('/seat/admin/toggleRoom', { id: id }, function(res) {
+            if (res.code == 200) {
+                javaex.optTip({ content: res.msg, type: "success" });
+                setTimeout(function(){ window.location.reload(); }, 1000);
+            }
+        });
+    }
+
+    var deletingRoomId = 0;
+    function deleteRoom(id) {
+        deletingRoomId = id;
+        javaex.confirm({
+            content: "确定要删除该阅览室吗？",
+            callback: "doDeleteRoom()"
+        });
+    }
+
+    function doDeleteRoom() {
+        $.post('/seat/admin/deleteRoom', { id: deletingRoomId }, function(res) {
+            if (res.code == 200) {
+                javaex.optTip({ content: "删除成功", type: "success" });
+                setTimeout(function(){ window.location.reload(); }, 1000);
+            }
+        });
+    }
+</script>
+
+</body>
+</html>

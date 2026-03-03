@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.book.manager.dao.LibraryMapper">
+
+    <select id="listFloors" resultType="map">
+        SELECT id, name, map_image_url as mapImageUrl FROM library_floor WHERE enabled = 1 ORDER BY sort ASC
+    </select>
+
+    <select id="listShelves" resultType="map">
+        SELECT id, floor_id as floorId, code, name, x, y, orientation FROM library_shelf WHERE floor_id = #{floorId} AND enabled = 1 ORDER BY code ASC
+    </select>
+
+    <select id="listShelfCells" resultType="map">
+        SELECT id, shelf_id as shelfId, layer_no as layerNo, cell_no as cellNo, x, y FROM library_shelf_cell WHERE shelf_id = #{shelfId} ORDER BY layer_no ASC, cell_no ASC
+    </select>
+
+    <select id="findBookLocation" resultType="map">
+        SELECT
+            bl.book_id as bookId,
+            bl.floor_id as floorId,
+            bl.shelf_id as shelfId,
+            bl.cell_id as cellId,
+            bl.call_no as callNo,
+            l.name as floorName,
+            s.code as shelfCode,
+            s.name as shelfName,
+            c.layer_no as layerNo,
+            c.cell_no as cellNo
+        FROM book_location bl
+        LEFT JOIN library_floor l ON l.id = bl.floor_id
+        LEFT JOIN library_shelf s ON s.id = bl.shelf_id
+        LEFT JOIN library_shelf_cell c ON c.id = bl.cell_id
+        WHERE bl.book_id = #{bookId}
+    </select>
+
+    <insert id="bindBookLocation">
+        INSERT INTO book_location(book_id, floor_id, shelf_id, cell_id, updated_at)
+        VALUES(#{bookId}, #{floorId}, #{shelfId}, #{cellId}, NOW())
+        ON DUPLICATE KEY UPDATE floor_id = VALUES(floor_id), shelf_id = VALUES(shelf_id), cell_id = VALUES(cell_id), updated_at = NOW()
+    </insert>
+
+    <!-- admin -->
+    <insert id="insertFloor">
+        INSERT INTO library_floor(name, sort, map_image_url, enabled) VALUES(#{name}, #{sort}, #{mapImageUrl}, 1)
+    </insert>
+    <select id="adminListFloors" resultType="map">
+        SELECT id, name, sort, map_image_url as mapImageUrl, enabled FROM library_floor ORDER BY sort ASC
+    </select>
+    <update id="updateFloor">
+        UPDATE library_floor SET name=#{name}, sort=#{sort}, map_image_url=#{mapImageUrl}, enabled=#{enabled} WHERE id=#{id}
+    </update>
+    <delete id="deleteFloor">
+        DELETE FROM library_floor WHERE id = #{id}
+    </delete>
+
+    <insert id="insertShelf">
+        INSERT INTO library_shelf(floor_id, code, name, x, y, orientation, enabled) VALUES(#{floorId}, #{code}, #{name}, #{x}, #{y}, #{orientation}, 1)
+    </insert>
+    <update id="updateShelf">
+        UPDATE library_shelf SET code=#{code}, name=#{name}, x=#{x}, y=#{y}, orientation=#{orientation}, enabled=#{enabled} WHERE id=#{id}
+    </update>
+    <delete id="deleteShelf">
+        DELETE FROM library_shelf WHERE id = #{id}
+    </delete>
+
+    <insert id="insertCell">
+        INSERT INTO library_shelf_cell(shelf_id, layer_no, cell_no, x, y) VALUES(#{shelfId}, #{layerNo}, #{cellNo}, #{x}, #{y})
+    </insert>
+    <update id="updateCell">
+        UPDATE library_shelf_cell SET layer_no=#{layerNo}, cell_no=#{cellNo}, x=#{x}, y=#{y} WHERE id=#{id}
+    </update>
+    <delete id="deleteCell">
+        DELETE FROM library_shelf_cell WHERE id = #{id}
+    </delete>
+
+    <select id="listBooksByShelf" resultType="map">
+        SELECT b.id, b.name, b.author, b.cover, b.publish, bl.cell_id as cellId
+        FROM book_location bl
+        INNER JOIN book b ON b.id = bl.book_id
+        WHERE bl.shelf_id = #{shelfId}
+        ORDER BY bl.cell_id ASC, b.id ASC
+    </select>
+
+</mapper>

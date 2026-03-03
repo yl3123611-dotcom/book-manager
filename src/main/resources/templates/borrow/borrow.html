@@ -1,0 +1,271 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+	<meta charset="utf-8">
+	<link href="../../javaex/pc/css/icomoon.css" rel="stylesheet" />
+	<link href="../../javaex/pc/css/animate.css" rel="stylesheet" />
+	<link href="../../javaex/pc/css/common.css" rel="stylesheet" />
+	<link href="../../javaex/pc/css/skin/tina.css" rel="stylesheet" />
+	<script src="../../javaex/pc/lib/jquery-1.7.2.min.js"></script>
+	<script src="../../javaex/pc/js/common.js"></script>
+	<script src="../../javaex/pc/js/javaex.min.js"></script>
+	<script src="../../javaex/pc/js/javaex-formVerify.js"></script>
+	<title>图书借阅</title>
+	<style>
+		body { background-color: #f0f2f5; padding: 20px;}
+		.block {
+			background: #fff;
+			width: 100%;
+			margin: 0;
+			padding: 40px 60px;
+			border-radius: 8px;
+			box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+		}
+		.banner {
+			border-bottom: 1px solid #f0f0f0;
+			margin-bottom: 30px;
+			padding-bottom: 16px;
+		}
+		.banner .tab.fixed {
+			font-size: 20px;
+			font-weight: 600;
+			color: #333;
+			border-left: none; /* Removing border line */
+			padding-left: 0;
+            display: inline-block;
+            position: relative;
+		}
+        .banner .tab.fixed::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 20px;
+            background: #1890ff;
+            margin-right: 12px;
+            vertical-align: text-bottom;
+            border-radius: 2px;
+        }
+
+		.unit { margin: 24px 0; }
+		.unit .left { width: 100px !important; text-align: right; font-weight: 500; color: #333; line-height: 36px;}
+		.unit .right { width: 400px; }
+
+        /* Overriding input styles from common.css if needed, but they should be fine */
+        .unit .right input[readonly] {
+            background-color: #f5f5f5;
+            color: #888;
+            cursor: not-allowed;
+            border-color: #d9d9d9;
+        }
+
+        .action-row {
+            margin-top: 40px;
+            margin-left: 120px; /* Offset for label */
+        }
+
+        .action-row .button {
+            width: 120px;
+            margin-right: 20px;
+        }
+	</style>
+</head>
+
+<body>
+<div class="list-content">
+	<div class="block">
+		<div class="banner">
+			<p class="tab fixed">图书借阅办理</p>
+		</div>
+
+		<div class="main" style="padding:0;">
+			<form id="form">
+				<div class="unit clear">
+					<div class="left"><span class="required">*</span><p class="subtitle">ISBN编号</p></div>
+					<div class="right">
+						<input type="text" id="isbn" class="text" placeholder="输入ISBN编号自动查询" readonly />
+					</div>
+				</div>
+
+				<div class="unit clear">
+					<div class="left"><span class="required">*</span><p class="subtitle">图书名称</p></div>
+					<div class="right">
+						<input type="text" id="bookName" class="text" placeholder="自动获取" readonly />
+					</div>
+				</div>
+
+				<div class="unit clear">
+					<div class="left"><p class="subtitle">作者</p></div>
+					<div class="right">
+						<input type="text" id="author" class="text" readonly />
+					</div>
+				</div>
+
+				<div class="unit clear">
+					<div class="left"><p class="subtitle">出版社</p></div>
+					<div class="right">
+						<input type="text" id="publish" class="text" readonly />
+					</div>
+				</div>
+
+				<div class="unit clear">
+					<div class="left"><span class="required">*</span><p class="subtitle">借阅周期</p></div>
+					<div class="right">
+						<input type="text" id="date2" class="ex-date" style="width: 100%; border:1px solid #dcdfe6; border-radius:4px;" value="" readonly/>
+					</div>
+				</div>
+
+				<div class="unit clear">
+					<div class="left"><p class="subtitle">分类/页数/定价</p></div>
+					<div class="right">
+						<input type="text" id="type" class="text" style="width: 30%; display:inline-block;" readonly />
+						<input type="text" id="pages" class="text" style="width: 30%; display:inline-block; margin: 0 3%;" readonly />
+						<input type="text" id="price" class="text" style="width: 30%; display:inline-block;" readonly />
+					</div>
+				</div>
+
+				<div class="unit clear">
+					<div class="left"><span class="required">*</span><p class="subtitle">当前库存</p></div>
+					<div class="right">
+						<input type="text" id="size" class="text" readonly style="color: #67c23a; font-weight:bold;" />
+					</div>
+				</div>
+
+				<div class="action-row">
+					<input type="button" id="return" class="button no" value="返回列表" />
+					<input type="button" id="save" class="button yes" value="确认借阅" />
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
+<script>
+	var bookId = 0;
+	$(document).ready(function(){
+		bookId = getQueryVariable("id");
+		if (bookId == null||bookId == "") {
+			$("#isbn").removeAttr("readonly").attr("placeholder", "请在此输入ISBN并回车");
+			$("#isbn").bind("input propertychange",function(event){
+				var isbn = $("#isbn").val();
+				$.get("/book/detailByIsbn",{"isbn": isbn}, function(data){
+					var data = data.data;
+					if(data){
+						$("#bookName").val(data.name);
+						$("#isbn").val(data.isbn);
+						$("#author").val(data.author);
+						$("#pages").val(data.pages);
+						$("#price").val(data.price);
+						$("#publish").val(data.publish);
+						$("#type").val(data.type);
+						$("#size").val(data.size);
+						bookId = data.id;
+					}
+				});
+			});
+		}else {
+			$.get("/book/detail",{"id": bookId}, function(data){
+				var data = data.data;
+				$("#bookName").val(data.name);
+				$("#isbn").val(data.isbn);
+				$("#author").val(data.author);
+				$("#pages").val(data.pages);
+				$("#price").val(data.price);
+				$("#publish").val(data.publish);
+				$("#type").val(data.type);
+				$("#size").val(data.size);
+			});
+		}
+	});
+
+	function getQueryVariable(variable){
+		var query = window.location.search.substring(1);
+		var vars = query.split("&");
+		for (var i=0;i<vars.length;i++) {
+			var pair = vars[i].split("=");
+			if(pair[0] == variable){return pair[1];}
+		}
+		return false;
+	}
+
+	var currentDate = new Date();
+	var startDate = dateFormat("YYYY-mm-dd",currentDate);
+	var day = new Date();
+	day.setDate(day.getDate() + 1);
+	var endDate = dateFormat("YYYY-mm-dd",day);
+	var sTime = startDate;
+	var eTime = endDate;
+
+	javaex.date({
+		id : "date2",
+		monthNum : 2,
+		startDate : startDate,
+		endDate : endDate,
+		callback : function(rtn) {
+			sTime = rtn.startDate;
+			eTime = rtn.endDate;
+		}
+	});
+
+	$("#save").click(function() {
+		var bookName = $("#bookName").val();
+		var size = $("#size").val();
+		if (bookName == null||bookName == "") {
+			javaex.optTip({ content : "请先查询或输入正确的ISBN!", type : "error" });
+			return false;
+		}
+		if (size==null||size<=0) {
+			javaex.optTip({ content : "库存不足，无法借阅!", type : "error" });
+			return false;
+		}
+
+		var userId = 0;
+		$.get("/user/currUser", function(data){
+			var user = data.data;
+			userId = user.id;
+			if (userId >0) {
+				var json = {"userId":userId,"bookId":bookId,"createTime":sTime,"endTime":eTime,"updateTime":eTime};
+				$.ajax({
+					type : "POST",
+					contentType: "application/json;charset=UTF-8",
+					url : "/borrow/add",
+					data : JSON.stringify(json),
+					success : function(result) {
+						if (result.code == 200) {
+							javaex.message({ content : "借阅成功", type : "success" });
+							setTimeout(function(){window.location.href="/borrow/book-search";},1500)
+						}else{
+							javaex.message({ content : result.msg, type : "error" });
+						}
+					}
+				});
+			}else {
+				javaex.message({ content : "登录已失效", type : "error" });
+			}
+		});
+	});
+
+	$("#return").click(function() {
+		window.location.href = "/borrow/book-search";
+	});
+
+	function dateFormat(fmt, date) {
+		var ret;
+		var opt = {
+			"Y+": date.getFullYear().toString(),
+			"m+": (date.getMonth() + 1).toString(),
+			"d+": date.getDate().toString(),
+			"H+": date.getHours().toString(),
+			"M+": date.getMinutes().toString(),
+			"S+": date.getSeconds().toString()
+		};
+		for (var k in opt) {
+			ret = new RegExp("(" + k + ")").exec(fmt);
+			if (ret) {
+				fmt = fmt.replace(ret[1], (ret[1].length == 1) ? (opt[k]) : (opt[k].padStart(ret[1].length, "0")))
+			}
+		}
+		return fmt;
+	}
+</script>
+</body>
+</html>

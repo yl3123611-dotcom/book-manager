@@ -1,0 +1,392 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <meta charset="utf-8">
+    <!-- CSRF tokens: Thymeleaf will replace these if available; kept optional -->
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+    <link href="../../javaex/pc/css/icomoon.css" rel="stylesheet" />
+    <link href="../../javaex/pc/css/animate.css" rel="stylesheet" />
+    <link href="../../javaex/pc/css/common.css" rel="stylesheet" />
+    <link href="../../javaex/pc/css/skin/tina.css" rel="stylesheet" />
+    <script src="../../javaex/pc/lib/jquery-1.7.2.min.js"></script>
+    <script src="../../javaex/pc/js/common.js"></script>
+    <script src="../../javaex/pc/js/javaex.min.js"></script>
+    <title>公告发布/管理</title>
+    <style>
+        body { background-color: #f0f2f5; }
+        .wrap { padding: 16px; }
+        .card { background:#fff; border:1px solid #e8e8e8; border-radius:6px; padding:16px; }
+        .toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:12px;flex-wrap:wrap;}
+        .toolbar .left{display:flex;align-items:center;gap:10px;}
+        .form-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+        .form-row label{color:rgba(0,0,0,0.65);font-size:13px;}
+        input.text, textarea{width:100%;}
+        textarea{min-height:120px;resize:vertical;}
+        .modal-mask{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,0.45);display:none;z-index:9999;}
+        .modal{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:720px;max-width:calc(100% - 32px);background:#fff;border-radius:8px;overflow:hidden;}
+        .modal-hd{padding:12px 16px;border-bottom:1px solid #f0f0f0;font-weight:600;display:flex;justify-content:space-between;align-items:center;}
+        .modal-bd{padding:16px;}
+        .modal-ft{padding:12px 16px;border-top:1px solid #f0f0f0;display:flex;justify-content:flex-end;gap:10px;}
+        .link{color:#1890ff;cursor:pointer;}
+        .tag{display:inline-block;padding:0 6px;border-radius:10px;font-size:12px;line-height:18px;height:18px;}
+        .tag-pin{background:#ff4d4f;color:#fff;}
+        .tag-off{background:rgba(0,0,0,0.06);color:rgba(0,0,0,0.65);}
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <div class="breadcrumb">
+        <span>公告管理</span>
+        <span class="divider">/</span>
+        <span class="active">公告发布/管理</span>
+    </div>
+
+    <div class="card">
+        <div class="toolbar">
+            <div class="left">
+                <button class="button blue" onclick="openEditor();"><i class="icon-plus"></i>新增公告</button>
+                <span style="color:rgba(0,0,0,0.45);font-size:12px;">提示：置顶公告会优先显示在首页公告栏</span>
+            </div>
+            <div class="right form-row">
+                <label>每页</label>
+                <select id="pageSize" class="select" style="min-width:120px;">
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                </select>
+                <button class="button" onclick="loadPage(1);">刷新</button>
+            </div>
+        </div>
+
+        <table class="table" style="background:#fff;">
+            <thead>
+            <tr>
+                <th style="width:70px;">ID</th>
+                <th>标题</th>
+                <th style="width:120px;">状态</th>
+                <th style="width:160px;">发布时间</th>
+                <th style="width:220px;">操作</th>
+            </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+        </table>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;">
+            <div id="pageInfo" style="color:rgba(0,0,0,0.45);font-size:12px;"></div>
+            <div style="display:flex;gap:8px;">
+                <button class="button" onclick="prevPage();">上一页</button>
+                <button class="button" onclick="nextPage();">下一页</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑弹窗 -->
+<div class="modal-mask" id="modalMask">
+    <div class="modal">
+        <div class="modal-hd">
+            <span id="modalTitle">新增公告</span>
+            <span class="link" onclick="closeEditor();">关闭</span>
+        </div>
+        <div class="modal-bd">
+            <input type="hidden" id="annId">
+            <div class="form-row" style="margin-bottom:10px;">
+                <label style="width:70px;">标题</label>
+                <div style="flex:1;min-width:260px;">
+                    <input class="text" id="annTitle" placeholder="请输入公告标题">
+                </div>
+            </div>
+            <div class="form-row" style="margin-bottom:10px;">
+                <label style="width:70px;">发布时间</label>
+                <div style="flex:1;min-width:260px;">
+                    <input class="text" id="annPublishTime" placeholder="例如：2026-02-28 16:57:56">
+                    <div style="color:rgba(0,0,0,0.45);font-size:12px;margin-top:6px;">留空默认当前时间；格式支持：yyyy-MM-dd HH:mm:ss</div>
+                </div>
+            </div>
+            <div class="form-row" style="margin-bottom:10px;">
+                <label style="width:70px;">状态</label>
+                <label><input type="checkbox" id="annEnabled" checked> 启用</label>
+                <label><input type="checkbox" id="annPinned"> 置顶</label>
+            </div>
+            <div class="form-row">
+                <label style="width:70px;">内容</label>
+                <div style="flex:1;min-width:260px;">
+                    <textarea id="annContent" placeholder="请输入公告内容"></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="modal-ft">
+            <button class="button" onclick="closeEditor();">取消</button>
+            <button class="button blue" onclick="saveAnnouncement();">保存</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    var currPage = 1;
+    var total = 0;
+
+    // ---- CSRF automatic setup for AJAX ----
+    (function(){
+        function readCookie(name) {
+            var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+            return match ? decodeURIComponent(match[2]) : null;
+        }
+        var csrfHeader = $('meta[name="_csrf_header"]').attr('content');
+        var csrfToken = $('meta[name="_csrf"]').attr('content');
+        if(!csrfHeader) {
+            // common defaults
+            csrfHeader = 'X-CSRF-TOKEN';
+        }
+        if(!csrfToken) {
+            // try common cookie names used to expose csrf token
+            csrfToken = readCookie('XSRF-TOKEN') || readCookie('X-CSRF-TOKEN');
+        }
+        if(csrfToken) {
+            $.ajaxSetup({
+                beforeSend: function(xhr){
+                    xhr.setRequestHeader(csrfHeader, csrfToken);
+                }
+            });
+        }
+    })();
+    // ---- end CSRF setup ----
+
+    function escapeHtml(s){
+        if(s === null || s === undefined) return '';
+        return String(s)
+            .replace(/&/g,'&amp;')
+            .replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;')
+            .replace(/'/g,'&#39;');
+    }
+
+    function normalizeTime(t){
+        if(!t) return '';
+        // LocalDateTime 序列化常见为 2026-02-28T16:57:56
+        return String(t).replace('T',' ').substring(0,19);
+    }
+
+    function pageSize(){
+        var v = parseInt($('#pageSize').val() || '10', 10);
+        if(!v || v<=0) v = 10;
+        return v;
+    }
+
+    function loadPage(page){
+        currPage = page || 1;
+        $.get('/announcement/admin/page?page=' + currPage + '&size=' + pageSize(), function(res){
+            if(!(res && res.code === 200)){
+                render([]);
+                return;
+            }
+            var data = res.data || {};
+            total = data.total || 0;
+            currPage = data.page || currPage;
+            render(data.list || []);
+            $('#pageInfo').text('第 ' + currPage + ' 页 / 共 ' + Math.max(1, Math.ceil(total / pageSize())) + ' 页，记录数：' + total);
+        });
+    }
+
+    function render(list){
+        var $tb = $('#tbody');
+        $tb.empty();
+        if(!list || list.length === 0){
+            $tb.append('<tr><td colspan="5" style="text-align:center;color:rgba(0,0,0,0.45);padding:18px;">暂无数据</td></tr>');
+            return;
+        }
+        for(var i=0;i<list.length;i++){
+            var a = list[i];
+            var status = '';
+            status += (a.pinned === 1 || a.pinned === '1') ? '<span class="tag tag-pin">置顶</span> ' : '';
+            status += (a.enabled === 1 || a.enabled === '1') ? '<span class="tag" style="background:#f6ffed;color:#52c41a;">启用</span>' : '<span class="tag tag-off">禁用</span>';
+
+            var ops = '';
+            ops += '<span class="link" onclick="edit('+ a.id +')">编辑</span>';
+            ops += ' &nbsp;|&nbsp; ';
+            var pinTo = (a.pinned === 1 || a.pinned === '1') ? 0 : 1;
+            ops += '<span class="link" onclick="pin('+ a.id +','+ pinTo +')">' + (pinTo===1?'置顶':'取消置顶') + '</span>';
+            ops += ' &nbsp;|&nbsp; ';
+            var enTo = (a.enabled === 1 || a.enabled === '1') ? 0 : 1;
+            ops += '<span class="link" onclick="enabled('+ a.id +','+ enTo +')">' + (enTo===1?'启用':'禁用') + '</span>';
+            ops += ' &nbsp;|&nbsp; ';
+            ops += '<span class="link" style="color:#ff4d4f;" onclick="del('+ a.id +')">删除</span>';
+
+            var row = '';
+            row += '<tr>';
+            row += '<td>' + a.id + '</td>';
+            row += '<td title="'+ escapeHtml(a.title||'') +'">' + escapeHtml(a.title||'') + '</td>';
+            row += '<td>' + status + '</td>';
+            row += '<td>' + escapeHtml(normalizeTime(a.publishTime)) + '</td>';
+            row += '<td>' + ops + '</td>';
+            row += '</tr>';
+            $tb.append(row);
+        }
+    }
+
+    function prevPage(){
+        if(currPage <= 1) return;
+        loadPage(currPage - 1);
+    }
+
+    function nextPage(){
+        var pages = Math.max(1, Math.ceil(total / pageSize()));
+        if(currPage >= pages) return;
+        loadPage(currPage + 1);
+    }
+
+    function openEditor(){
+        $('#modalTitle').text('新增公告');
+        $('#annId').val('');
+        $('#annTitle').val('');
+        $('#annContent').val('');
+        $('#annPublishTime').val('');
+        $('#annEnabled').prop('checked', true);
+        $('#annPinned').prop('checked', false);
+        $('#modalMask').show();
+    }
+
+    function closeEditor(){
+        $('#modalMask').hide();
+    }
+
+    function edit(id){
+        $.get('/announcement/admin/detail?id=' + id, function(res){
+            if(!(res && res.code === 200 && res.data)) return;
+            var a = res.data;
+            $('#modalTitle').text('编辑公告 #' + id);
+            $('#annId').val(a.id);
+            $('#annTitle').val(a.title || '');
+            $('#annContent').val(a.content || '');
+            $('#annPublishTime').val(normalizeTime(a.publishTime));
+            $('#annEnabled').prop('checked', (a.enabled === 1 || a.enabled === '1'));
+            $('#annPinned').prop('checked', (a.pinned === 1 || a.pinned === '1'));
+            $('#modalMask').show();
+        });
+    }
+
+    function saveAnnouncement(){
+        var id = $('#annId').val();
+        var payload = {
+            id: id ? parseInt(id,10) : null,
+            title: $('#annTitle').val(),
+            content: $('#annContent').val(),
+            enabled: $('#annEnabled').prop('checked') ? 1 : 0,
+            pinned: $('#annPinned').prop('checked') ? 1 : 0,
+            publishTime: null
+        };
+
+        var pt = ($('#annPublishTime').val() || '').trim();
+        if(pt){
+            // 后端 LocalDateTime 默认支持 "yyyy-MM-ddTHH:mm:ss"，这里兼容空格：转成 T
+            payload.publishTime = pt.replace(' ', 'T');
+        }
+
+        if(!payload.title){
+            javaex.message({content:'请输入标题', type:'error'});
+            return;
+        }
+
+        $.ajax({
+            type: 'POST',
+            url: '/announcement/admin/save',
+            contentType: 'application/json;charset=utf-8',
+            data: JSON.stringify(payload),
+            success: function(res){
+                if(res && res.code === 200){
+                    javaex.message({content:'保存成功', type:'success'});
+                    closeEditor();
+                    loadPage(currPage);
+                }else{
+                    javaex.message({content:(res && res.msg) ? res.msg : '保存失败', type:'error'});
+                }
+            }
+        });
+    }
+
+    function enabled(id, v){
+        $.ajax({
+            type: 'GET',
+            url: '/announcement/admin/enabled?id=' + id + '&enabled=' + v,
+            dataType: 'json',
+            success: function(res){
+                if(res && res.code === 200){
+                    loadPage(currPage);
+                }else{
+                    javaex.message({content:(res && res.msg) ? res.msg : '操作失败', type:'error'});
+                }
+            },
+            error: function(xhr){
+                javaex.message({content:'操作失败：' + (xhr.status || '') + ' ' + (xhr.statusText || ''), type:'error'});
+            }
+        });
+    }
+
+    function pin(id, v){
+        $.ajax({
+            type: 'GET',
+            url: '/announcement/admin/pin?id=' + id + '&pinned=' + v,
+            dataType: 'json',
+            success: function(res){
+                if(res && res.code === 200){
+                    loadPage(currPage);
+                }else{
+                    javaex.message({content:(res && res.msg) ? res.msg : '操作失败', type:'error'});
+                }
+            },
+            error: function(xhr){
+                javaex.message({content:'操作失败：' + (xhr.status || '') + ' ' + (xhr.statusText || ''), type:'error'});
+            }
+        });
+    }
+
+    function del(id){
+        javaex.confirm({
+            content : '确认删除该公告？',
+            callback : function(r){
+                if(r){
+                    $.ajax({
+                        type: 'POST',
+                        url: '/announcement/admin/delete',
+                        data: { id: id },
+                        dataType: 'json',
+                        success: function(res){
+                            if(res && res.code === 200){
+                                javaex.message({content:'已删除', type:'success'});
+                                loadPage(1);
+                            }else{
+                                javaex.message({content:(res && res.msg) ? res.msg : '删除失败', type:'error'});
+                            }
+                        },
+                        error: function(xhr){
+                            // 常见：302 跳转到 /login；403 没权限；500 后端异常
+                            javaex.message({content:'删除失败：' + (xhr.status || '') + ' ' + (xhr.statusText || ''), type:'error'});
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    // ---- make handlers globally accessible (required by inline onclick=...) ----
+    // Some pages run scripts in a non-global scope; inline onclick calls look up functions on window.
+    window.openEditor = openEditor;
+    window.closeEditor = closeEditor;
+    window.edit = edit;
+    window.saveAnnouncement = saveAnnouncement;
+    window.enabled = enabled;
+    window.pin = pin;
+    window.del = del;
+    window.prevPage = prevPage;
+    window.nextPage = nextPage;
+    window.loadPage = loadPage;
+
+    $(function(){
+        $('#pageSize').val('10');
+        loadPage(1);
+    });
+</script>
+</body>
+</html>

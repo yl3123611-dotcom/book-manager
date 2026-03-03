@@ -1,0 +1,435 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="../javaex/pc/css/icomoon.css" rel="stylesheet" />
+    <link href="../javaex/pc/css/animate.css" rel="stylesheet" />
+    <link href="../javaex/pc/css/common.css" rel="stylesheet" />
+    <link href="../javaex/pc/css/skin/tina.css" rel="stylesheet" />
+    <script src="../javaex/pc/lib/jquery-1.7.2.min.js"></script>
+    <script src="../javaex/pc/js/common.js"></script>
+    <script src="../javaex/pc/js/javaex.min.js"></script>
+    <title>首页</title>
+    <style>
+        body { background-color: #f0f2f5; font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, sans-serif; }
+
+        /* 公告栏 */
+        .ann-bar{background:#fff;border:1px solid #e8e8e8;border-radius:6px;margin:16px 16px 0 16px;padding:12px 16px;box-shadow:0 1px 2px rgba(0,0,0,0.03);}
+        .ann-bar-hd{display:flex;align-items:center;justify-content:space-between;}
+        .ann-bar-title{font-weight:600;color:rgba(0,0,0,0.85);}
+        .ann-bar-more{color:#1890ff;cursor:pointer;font-size:12px;}
+        .ann-items{margin-top:10px;}
+        .ann-item{display:flex;align-items:center;gap:10px;padding:6px 0;}
+        .ann-badge{background:#ff4d4f;color:#fff;border-radius:10px;padding:0 6px;font-size:12px;line-height:18px;height:18px;display:inline-block;}
+        .ann-item a{color:rgba(0,0,0,0.85);cursor:pointer;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+        .ann-time{color:rgba(0,0,0,0.45);font-size:12px;flex:0 0 auto;}
+        .ann-empty{color:rgba(0,0,0,0.45);font-size:12px;padding:6px 0;}
+        .ann-detail{display:none;margin-top:8px;color:rgba(0,0,0,0.65);line-height:1.7;}
+
+        .breadcrumb {
+            background: #fff;
+            padding: 16px 24px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid #e8e8e8;
+            box-shadow: 0 1px 4px rgba(0,21,41,0.08);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* 推荐网格样式 */
+        .rec-container { margin-bottom: 40px; }
+        .rec-header {
+            border-bottom: 1px solid #e8e8e8;
+            padding-bottom: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+        }
+        .rec-title { font-size: 20px; color: #333; font-weight: 600; position: relative; padding-left: 12px; }
+        .rec-title::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 4px;
+            height: 20px;
+            width: 4px;
+            background: #1890ff;
+            border-radius: 2px;
+        }
+        .rec-sub { font-size: 14px; color: #888; margin-left: 12px; font-weight: 400; }
+
+        .book-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 24px; }
+
+        .book-card {
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+            border: 1px solid #f0f0f0;
+            display: flex;
+            flex-direction: column;
+        }
+        .book-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px -10px rgba(0,0,0,0.15); }
+
+        .card-img {
+            height: 280px;
+            overflow: hidden;
+            background: #fafafa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .card-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
+        .book-card:hover .card-img img { transform: scale(1.05); }
+
+        .card-info { padding: 16px; flex: 1; display: flex; flex-direction: column; }
+        .card-name { font-size: 16px; font-weight: 600; color: #333; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .card-author { font-size: 13px; color: #888; margin-bottom: 12px; }
+        .card-tag {
+            display: inline-block;
+            background: #e6f7ff;
+            color: #1890ff;
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 2px;
+            align-self: flex-start;
+            border: 1px solid #91d5ff;
+        }
+
+        /* 党史红书专区 */
+        .topic-hero {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            padding: 24px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 32px;
+            background-image: linear-gradient(120deg, #fff 70%, #fff1f0 100%);
+        }
+        .topic-hero-left { display: flex; flex-direction: column; }
+        .topic-hero-title { font-size: 22px; font-weight: 700; color: #1f2d3d; margin-bottom: 8px; }
+        .topic-hero-desc { font-size: 14px; color: #5e6d82; }
+
+        .topic-btn {
+            padding: 10px 24px;
+            border-radius: 4px;
+            background: #ff4d4f;
+            color: #fff;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s;
+            box-shadow: 0 2px 0 rgba(0,0,0,0.045);
+        }
+        .topic-btn:hover { background: #ff7875; box-shadow: 0 4px 12px rgba(255, 77, 79, 0.3); }
+
+        /* Slide Styles */
+        .ex-slide ul.focus-bg a { display: block; width: 100%; height: 100%; background: no-repeat 50%; background-size: cover; }
+        .ex-slide .wrapper { width: 100%; max-width: 1400px; height: 106px; margin: 0 auto; position: relative; margin-top: 414px; padding: 0 24px; box-sizing: border-box;}
+        .ex-slide .focus-box { width: 100%; height: 106px; margin: 0 auto; position: absolute; left: 0; bottom: 0; background: linear-gradient(to top, rgba(0,0,0,0.6), transparent); }
+        .ex-slide .focus-box ul { padding-left: 20px; padding: 18px 0 0 18px; overflow: hidden; }
+        .ex-slide .focus-box li { float: left; width: 140px; height: 70px; margin-right: 15px; position: relative; border-radius: 4px; overflow: hidden; cursor: pointer; opacity: 0.7; transition: all 0.3s; }
+        .ex-slide .focus-box li:hover { opacity: 1; }
+        .ex-slide .focus-box li img { display: block; width: 140px; height: 70px; }
+        .ex-slide .focus-box li.on { opacity: 1; border: 2px solid #1890ff; }
+        .ex-slide { width: 100%; height: 520px; background: #eee; margin-bottom: 40px; }
+        .ex-slide ul.focus-bg li { width: 100%; height: 520px; }
+
+    </style>
+</head>
+<body>
+
+<!-- 公告栏（首页顶部） -->
+<div class="ann-bar">
+    <div class="ann-bar-hd">
+        <div class="ann-bar-title"><i class="icon-bullhorn" style="margin-right:8px;color:#faad14;"></i>公告</div>
+        <div class="ann-bar-more" onclick="parent.page('announcement/list')">更多</div>
+    </div>
+    <div id="annItems" class="ann-items"></div>
+</div>
+
+<div class="container">
+
+<!-- ✅ 党史红书专区入口 -->
+<div class="topic-hero">
+    <div class="topic-hero-left">
+        <div class="topic-hero-title">党史红书专区</div>
+        <div class="topic-hero-desc">红色经典 · 党史学习教育推荐书单</div>
+    </div>
+    <div class="topic-hero-actions">
+        <!-- 不依赖 target=iframe：在后台 iframe 里直接 window.location 就会在 iframe 内跳转 -->
+        <a class="topic-btn" href="javascript:;" onclick="window.location.href='/topic/dangshi-hongshu'">进入专区</a>
+    </div>
+</div>
+
+<div class="rec-container">
+    <div class="rec-header">
+        <div>
+            <span class="rec-title">党史红书 · 推荐书单</span>
+            <span class="rec-sub">Red Classics</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+            <a href="javascript:;" id="dangshiReload" style="color:#606266;font-size:13px;text-decoration:none;" onclick="loadDangshiPreview();">刷新</a>
+            <a href="javascript:;" style="color:#ff4d4f;font-size:13px;text-decoration:none;" onclick="window.location.href='/topic/dangshi-hongshu'">查看更多 &gt;</a>
+        </div>
+    </div>
+    <div id="dangshiGrid" class="book-grid"></div>
+    <div id="dangshiEmpty" style="display:none;color:#909399;font-size:13px;padding:6px 0;">
+        <span id="dangshiEmptyText">暂无书单，请到“专题管理”添加书籍后刷新。</span>
+        <a id="dangshiToAdmin" href="javascript:;" style="display:none;margin-left:10px;color:#1890ff;text-decoration:none;" onclick="window.location.href='/special/admin/manage'">去专题管理 &gt;</a>
+    </div>
+</div>
+
+</div> <!-- End Container -->
+
+<div style="width: 100%; height: 520px;">
+    <div id="slide" class="ex-slide">
+        <!-- ✅ 改为动态渲染 -->
+        <ul class="focus-bg" id="focusBg"></ul>
+
+        <div class="wrapper">
+            <div class="focus-box">
+                <!-- ✅ 改为动态渲染 -->
+                <ul id="focusThumb"></ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+
+<div class="rec-container">
+    <div class="rec-header">
+        <div>
+            <span class="rec-title">热门图书推荐</span>
+            <span class="rec-sub">Featured Books</span>
+        </div>
+    </div>
+    <div id="bookGrid" class="book-grid"></div>
+</div>
+
+</div> <!-- End Container -->
+
+<script>
+    // 页面加载完成
+    $(document).ready(function() {
+        loadBanners();          // ✅ 轮播走后台
+        loadRecommendations();  // ✅ 推荐走后台
+        initDangshiAdminHint();
+        loadDangshiPreview();
+    });
+
+    function initDangshiAdminHint(){
+        $.get('/user/currUser', function(res){
+            if(res && res.code===200 && res.data){
+                var user = res.data;
+                var auth = (user.isAdmin !== undefined) ? user.isAdmin : user.is_admin;
+                // 项目现有逻辑：is_admin=0 为管理员
+                if(auth === 0 || auth === '0'){
+                    $('#dangshiToAdmin').show();
+                    // 管理员看到更明确的提示
+                    $('#dangshiEmptyText').text('当前“党史红书”专题暂无书籍，请先去专题管理添加书籍，然后点击“刷新”。');
+                }
+            }
+        });
+    }
+
+    function normalizeCover(cover){
+        if(!cover) return '../javaex/img/1.jpg';
+        if (cover.indexOf("/") !== 0 && cover.indexOf("http") !== 0 && cover.indexOf("..") !== 0) {
+            return "/" + cover;
+        }
+        return cover;
+    }
+
+    function setDangshiReloadLoading(loading){
+        if(loading){
+            $('#dangshiReload').text('刷新中...').css('pointer-events','none').css('opacity','0.6');
+        }else{
+            $('#dangshiReload').text('刷新').css('pointer-events','auto').css('opacity','1');
+        }
+    }
+
+    function loadDangshiPreview(){
+        setDangshiReloadLoading(true);
+        $.get('/topic/api/dangshi-hongshu/books', function(res){
+            if(!(res && res.code==200)){
+                $('#dangshiGrid').html('');
+                $('#dangshiEmpty').show();
+                return;
+            }
+            var list = res.data || [];
+            if(!list || list.length===0){
+                $('#dangshiGrid').html('');
+                $('#dangshiEmpty').show();
+                return;
+            }
+            $('#dangshiEmpty').hide();
+
+            // 仅展示前 10 本
+            if(list.length > 10) list = list.slice(0,10);
+            var html = "";
+            $.each(list, function(i, book){
+                var cover = normalizeCover(book.cover);
+                html += `
+                    <div class="book-card" onclick="window.location.href='/book/detail-view?id=${book.id}'">
+                        <div class="card-img">
+                            <img src="${cover}" alt="${book.name||''}">
+                        </div>
+                        <div class="card-info">
+                            <div class="card-name" title="${book.name||''}">${book.name||''}</div>
+                            <div class="card-author">${book.author || ""}</div>
+                            <span class="card-tag">党史红书</span>
+                        </div>
+                    </div>`;
+            });
+            $('#dangshiGrid').html(html);
+        }).fail(function(){
+            $('#dangshiGrid').html('');
+            $('#dangshiEmpty').show();
+        }).always(function(){
+            setDangshiReloadLoading(false);
+        });
+    }
+
+    // =======================
+    // 轮播：从 /home/banners 获取启用的轮播
+    // =======================
+    function loadBanners() {
+        $.ajax({
+            type: "GET",
+            url: "/home/banners",
+            success: function(result) {
+                if (result.code == 200) {
+                    var list = result.data || [];
+                    var bgHtml = "";
+                    var thHtml = "";
+
+                    $.each(list, function(i, b) {
+                        // ✅ 你项目实体字段：imageUrl / linkUrl
+                        var img = b.imageUrl;
+                        var link = b.linkUrl || "javascript:;";
+
+                        // 兼容没有以 / 开头的情况（防止拼接出错）
+                        if (img && img.indexOf("/") !== 0 && img.indexOf("http") !== 0) {
+                            img = "/" + img;
+                        }
+
+                        bgHtml += `<li><a href="${link}" style="background-image:url('${img}')"></a></li>`;
+                        thHtml += `<li><a href="${link}"><img src="${img}" /></a></li>`;
+                    });
+
+                    // 渲染
+                    $("#focusBg").html(bgHtml);
+                    $("#focusThumb").html(thHtml);
+
+                    // ✅ 必须等渲染完再初始化轮播
+                    javaex.slide({
+                        id : "slide",
+                        delay : 3000
+                    });
+                }
+            }
+        });
+    }
+
+    // =======================
+    // 推荐：从 /home/recommends 获取后台设置的推荐
+    // =======================
+    function loadRecommendations() {
+        $.ajax({
+            type: "GET",
+            url: "/home/recommends?size=10",
+            success: function(result) {
+                if (result.code == 200) {
+                    var list = result.data || [];
+                    var html = "";
+
+                    $.each(list, function(i, book) {
+                        var cover = book.cover ? book.cover : '../javaex/img/1.jpg'; // 默认图
+
+                        // 兼容封面路径
+                        if (cover && cover.indexOf("/") !== 0 && cover.indexOf("http") !== 0 && cover.indexOf("..") !== 0) {
+                            cover = "/" + cover;
+                        }
+
+                        html += `
+                            <div class="book-card" onclick="window.location.href='/book/detail-view?id=${book.id}'">
+                                <div class="card-img">
+                                    <img src="${cover}" alt="${book.name}">
+                                </div>
+                                <div class="card-info">
+                                    <div class="card-name" title="${book.name}">${book.name}</div>
+                                    <div class="card-author">${book.author || ""}</div>
+                                    <span class="card-tag">${book.type || ""}</span>
+                                </div>
+                            </div>`;
+                    });
+
+                    $("#bookGrid").html(html);
+                }
+            }
+        });
+    }
+
+    function escapeHtml(s){
+        if(s === null || s === undefined) return '';
+        return String(s)
+            .replace(/&/g,'&amp;')
+            .replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;')
+            .replace(/\"/g,'&quot;')
+            .replace(/'/g,'&#39;');
+    }
+
+    function fmtTime(t){
+        if(!t) return '';
+        return String(t).replace('T',' ').substring(0,16);
+    }
+
+    function renderTopAnnouncements(list){
+        var $box = $("#annItems");
+        $box.empty();
+        if(!list || list.length === 0){
+            $box.append('<div class="ann-empty">暂无公告</div>');
+            return;
+        }
+        for(var i=0;i<list.length;i++){
+            var a = list[i];
+            var badge = (a.pinned == 1) ? '<span class="ann-badge">置顶</span>' : '';
+            var html = '';
+            html += '<div class="ann-item" data-id="'+ a.id +'">' + badge;
+            html +=   '<a class="ann-link">' + escapeHtml(a.title || '') + '</a>';
+            html +=   '<span class="ann-time">' + escapeHtml(fmtTime(a.publishTime)) + '</span>';
+            html += '</div>';
+            html += '<div class="ann-detail" data-id="'+ a.id +'">' + escapeHtml(a.content || '').replace(/\n/g,'<br/>') + '</div>';
+            $box.append(html);
+        }
+
+        $box.find('.ann-link').off('click').on('click', function(){
+            var id = $(this).closest('.ann-item').data('id');
+            $box.find('.ann-detail[data-id="'+ id +'"]').slideToggle(120);
+        });
+    }
+
+    $(function(){
+        $.get('/announcement/top?limit=3', function(res){
+            if(res && res.code === 200){
+                renderTopAnnouncements(res.data);
+            }else{
+                renderTopAnnouncements([]);
+            }
+        });
+    });
+</script>
+</body>
+</html>

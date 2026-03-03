@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>论坛管理</title>
+    <link href="../../javaex/pc/css/common.css" rel="stylesheet" />
+    <link href="../../javaex/pc/css/skin/tina.css" rel="stylesheet" />
+    <script src="../../javaex/pc/lib/jquery-1.7.2.min.js"></script>
+    <script src="../../javaex/pc/js/javaex.min.js"></script>
+</head>
+<body>
+<div class="block">
+    <h2>论坛管理</h2>
+    <div class="main">
+        <div style="margin-bottom:12px;">
+            <input id="keyword" class="text" style="width:420px" placeholder="搜索" />
+            <button class="button blue" onclick="search()">搜索</button>
+        </div>
+        <div id="list"></div>
+        <div class="page"><ul id="page" class="pagination"></ul></div>
+
+        <div id="replies" style="margin-top:20px;background:#fff;padding:12px;display:none;">
+            <h3>回复列表</h3>
+            <div id="replyList"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var currentPostId = null;
+
+    function render(list){
+        var html='';
+        for(var i=0;i<list.length;i++){
+            var it=list[i];
+            html += '<div style="padding:12px;border-bottom:1px solid #eee;">'
+                + '<div style="font-weight:bold">'+(it.title||'')+'</div>'
+                + '<div style="color:#999;font-size:12px;margin-top:6px">用户:'+ (it.userId||'') +' 状态:'+(it.status||0)+' 置顶:'+(it.isPinned||0)+' 加精:'+(it.isFeatured||0)+' 回复数:'+(it.replyCount||0)+'</div>'
+                + '<div style="margin-top:6px">'
+                + '<button class="button small" onclick="doStatus('+it.id+',1)">隐藏</button> '
+                + '<button class="button small" onclick="doStatus('+it.id+',0)">恢复</button> '
+                + '<button class="button small" onclick="doPin('+it.id+','+(it.isPinned?0:1)+')">'+(it.isPinned? '取消置顶':'置顶')+'</button> '
+                + '<button class="button small" onclick="doFeature('+it.id+','+(it.isFeatured?0:1)+')">'+(it.isFeatured? '取消加精':'加精')+'</button> '
+                + '<button class="button small" onclick="viewReplies('+it.id+')">查看回复</button> '
+                + '<button class="button small" onclick="recount('+it.id+')">重算回复数</button>'
+                + '</div></div>';
+        }
+        $('#list').html(html);
+    }
+
+    function viewReplies(postId){
+        currentPostId = postId;
+        $.get('/forum/admin/replies',{postId:postId}, function(res){
+            if(res && res.code==200){
+                var list=res.data || [];
+                var html='';
+                for(var i=0;i<list.length;i++){
+                    var r=list[i];
+                    html += '<div style="padding:8px;border-top:1px dashed #eee;">'+
+                        '<div><b>'+(r.nickname||r.username||('用户'+r.userId))+'</b> <span style="color:#999;font-size:12px;">'+(r.createdAt||'')+'</span></div>'+
+                        '<div style="margin-top:6px;">'+(r.content||'')+'</div>'+
+                        '<div style="margin-top:6px">'+
+                        '<button class="button small" onclick="replyStatus('+r.id+',1)">隐藏</button> '
+                        + '<button class="button small" onclick="replyStatus('+r.id+',0)">恢复</button>'
+                        + '</div></div>';
+                }
+                $('#replyList').html(html);
+                $('#replies').show();
+            }
+        });
+    }
+
+    function replyStatus(id,s){
+        $.post('/forum/admin/reply/status',{id:id,status:s}, function(res){
+            if(res && res.code==200){
+                if(currentPostId) viewReplies(currentPostId);
+                search();
+            } else alert('失败');
+        });
+    }
+
+    function recount(postId){
+        $.post('/forum/admin/post/recount',{postId:postId}, function(res){
+            if(res && res.code==200){
+                alert('已重算');
+                search();
+            } else {
+                alert('重算失败');
+            }
+        });
+    }
+
+    function loadPage(currPage, perPage){
+        var kw=$('#keyword').val();
+        $.ajax({
+            url:'/forum/admin/list/page',
+            type:'POST',
+            contentType:'application/json',
+            data: JSON.stringify({currPage: currPage, pageSize: perPage, keyword: kw}),
+            success:function(res){
+                if(res && res.code==200){
+                    var p=res.data;
+                    render(p.list||[]);
+                    var total=p.total||0; var pageSize=p.pageSize||20; var pageCount=Math.ceil(total/pageSize);
+                    javaex.page({ id:'page', pageCount: pageCount, currentPage: p.currPage, perPageCount: pageSize, totalNum: total, position:'center', callback:function(r){ loadPage(r.pageNum, r.perPageCount); } });
+                }
+            }
+        });
+    }
+
+    function search(){ loadPage(1,20); }
+    function doStatus(id,s){ $.post('/forum/admin/status',{id:id,status:s},function(res){ if(res && res.code==200) search(); else alert('失败'); }); }
+    function doPin(id,p){ $.post('/forum/admin/pin',{id:id,isPinned:p},function(res){ if(res && res.code==200) search(); else alert('失败'); }); }
+    function doFeature(id,f){ $.post('/forum/admin/feature',{id:id,isFeatured:f},function(res){ if(res && res.code==200) search(); else alert('失败'); }); }
+
+    $(document).ready(function(){ loadPage(1,20); });
+</script>
+</body>
+</html>

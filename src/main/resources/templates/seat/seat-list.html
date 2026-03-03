@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>座位预约</title>
+    <link href="/javaex/pc/css/common.css" rel="stylesheet" />
+    <link href="/javaex/pc/css/skin/tina.css" rel="stylesheet" />
+    <script src="/javaex/pc/lib/jquery-1.7.2.min.js"></script>
+    <script src="/javaex/pc/js/javaex.min.js"></script>
+    <style>
+        body { background-color: #f5f7fa; }
+        .main { background: transparent; padding: 20px; box-shadow: none; }
+
+        /* 顶部卡片 */
+        .filter-card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* 讲台指示器 */
+        .screen-indicator {
+            width: 60%;
+            height: 30px;
+            background: #eef1f6;
+            border-radius: 0 0 40px 40px;
+            margin: 0 auto 40px;
+            text-align: center;
+            line-height: 30px;
+            color: #909399;
+            font-size: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        /* 图例 */
+        .legend { display: flex; gap: 20px; font-size: 13px; color: #666; }
+        .legend-item { display: flex; align-items: center; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; }
+        .dot.free { background: #67c23a; }
+        .dot.busy { background: #f56c6c; }
+        .dot.mine { background: #409eff; }
+
+        /* 座位网格 */
+        .seat-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 25px;
+            justify-content: center;
+            padding-bottom: 40px;
+        }
+
+        .seat-item {
+            width: 100px;
+            height: 100px;
+            background: #fff;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            border: 2px solid transparent;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .seat-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+
+        /* 空闲状态 */
+        .seat-item.free { border-color: #e1f3d8; }
+        .seat-item.free .seat-icon { color: #67c23a; }
+        .seat-item.free:hover { border-color: #67c23a; background-color: #f0f9eb; }
+
+        /* 占用状态 */
+        .seat-item.busy {
+            background-color: #fef0f0;
+            border-color: #fde2e2;
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+        .seat-item.busy .seat-icon { color: #f56c6c; }
+        .seat-item.busy:hover { transform: none; box-shadow: none; }
+
+        .seat-icon { font-size: 32px; margin-bottom: 8px; }
+        .seat-name { font-size: 14px; font-weight: 600; color: #303133; }
+        .seat-room { font-size: 12px; color: #909399; margin-top: 4px; }
+
+        /* 按钮美化 */
+        .btn-custom {
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            border: none;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .btn-blue { background: #409eff; color: #fff; box-shadow: 0 4px 12px rgba(64,158,255,0.3); }
+        .btn-blue:hover { background: #66b1ff; }
+        .btn-search { background: #409eff; color: #fff; border-radius: 4px; height: 36px; padding: 0 20px; }
+        
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            color: #909399;
+            padding: 80px 20px;
+        }
+        .empty-state i {
+            font-size: 64px;
+            color: #dcdfe6;
+            margin-bottom: 20px;
+        }
+        .empty-state p {
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        /* 可选时间段：默认隐藏手填时间，避免用户自己拼格式 */
+        .manual-time { display: none; }
+    </style>
+</head>
+<body>
+<div class="list-content">
+    <div class="block">
+        <div class="main">
+            <div class="filter-card">
+                <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                    <span style="font-size: 18px; font-weight: bold; color: #303133;">
+                        <i class="icon-event_seat" style="color: #409eff; margin-right: 8px;"></i>座位预约
+                    </span>
+                    <div style="width: 1px; height: 20px; background: #eee; margin: 0 10px;"></div>
+
+                    <select id="roomSelect" class="select" style="width: 140px; height: 36px;">
+                        <option value="">全部阅览室</option>
+                        <option th:each="room : ${rooms}" th:value="${room.name}" th:text="${room.name}"></option>
+                    </select>
+
+                    <input id="slotDate" class="text" placeholder="日期(YYYY-MM-DD)" style="width:140px;height:36px;" />
+                    <select id="slotSelect" class="select" style="width: 220px; height: 36px;">
+                        <option value="">选择已配置时段(可选)</option>
+                    </select>
+                    <span id="slotHint" style="color:#f56c6c;font-size:12px;display:none;">当前日期该阅览室未配置配额时段，将按“立即预约”处理</span>
+
+                    <input id="slotStart" class="text manual-time" placeholder="开始(YYYY-MM-DD HH:mm:ss)" style="width:220px;height:36px;" />
+                    <input id="slotEnd" class="text manual-time" placeholder="结束(YYYY-MM-DD HH:mm:ss)" style="width:220px;height:36px;" />
+
+                    <button class="btn-search" onclick="filterSeats()"><i class="icon-search"></i> 筛选</button>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 30px;">
+                    <div class="legend">
+                        <div class="legend-item"><div class="dot free"></div>空闲</div>
+                        <div class="legend-item"><div class="dot busy"></div>占用</div>
+                    </div>
+                    <a href="/seat/my" target="iframe" class="btn-custom btn-blue">
+                        <i class="icon-calendar"></i> 我的预约
+                    </a>
+                </div>
+            </div>
+
+            <div class="main-body" style="background: #fff; padding: 30px; border-radius: 8px; min-height: 500px;">
+                <div class="screen-indicator">讲台 / 屏幕方向</div>
+
+                <div class="seat-grid" th:if="${not #lists.isEmpty(seats)}">
+                    <div th:each="seat : ${seats}"
+                         th:classappend="${seat.status == 0} ? 'free' : 'busy'"
+                         class="seat-item"
+                         th:attr="data-room=${seat.room}"
+                         th:onclick="${seat.status == 0} ? 'reserveSeat(' + ${seat.id} + ')' : ''">
+
+                        <div class="seat-icon">
+                            <i th:class="${seat.status == 0} ? 'icon-event_seat' : 'icon-do_not_disturb_on'"></i>
+                        </div>
+
+                        <div class="seat-name" th:text="${seat.seatNo}">A-001</div>
+                        <div class="seat-room" th:text="${seat.room}">1号阅览室</div>
+                    </div>
+                </div>
+
+                <div th:if="${#lists.isEmpty(seats)}" class="empty-state">
+                    <i class="icon-event_seat"></i>
+                    <p>暂无座位数据</p>
+                    <span style="font-size: 14px;">请联系管理员添加座位</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var targetSeatId = 0;
+
+    // 初始化日期（不再强制用户填写开始/结束）
+    $(function(){
+        var now = new Date();
+        var y = now.getFullYear();
+        var m = String(now.getMonth()+1).padStart(2,'0');
+        var d = String(now.getDate()).padStart(2,'0');
+        var dateStr = y+"-"+m+"-"+d;
+        $('#slotDate').val(dateStr);
+        loadQuotaSlots();
+    });
+
+    function filterSeats() {
+        var room = $("#roomSelect").val();
+        if (room === "") {
+            $(".seat-item").fadeIn();
+        } else {
+            $(".seat-item").hide();
+            $(".seat-item[data-room='" + room + "']").fadeIn();
+        }
+        loadQuotaSlots();
+    }
+
+    function reserveSeat(id) {
+        targetSeatId = id;
+
+        var slot = $('#slotSelect').val();
+        var start = $('#slotStart').val();
+        var end = $('#slotEnd').val();
+
+        // ✅ 没选时段：直接立即预约
+        if(!slot){
+            javaex.confirm({
+                content : "确定立即预约该座位？",
+                callback : "realReserve()"
+            });
+            return;
+        }
+
+        // ✅ 选了时段但没回填（理论上不会发生）：兜底提示
+        if(!start || !end){
+            javaex.optTip({ content : '请选择一个已配置时段', type : 'error' });
+            return;
+        }
+
+        javaex.confirm({
+            content : "确定预约该座位？\n" + start + " ~ " + end,
+            callback : "realReserve()"
+        });
+    }
+
+    function realReserve() {
+        if (!targetSeatId) return;
+
+        var slot = $('#slotSelect').val();
+        var start = $('#slotStart').val();
+        var end = $('#slotEnd').val();
+
+        // ✅ 没选时段：调用立即预约
+        if(!slot){
+            $.post("/seat/reserve", { "seatId": targetSeatId }, function(res) {
+                if (res.code == "200") {
+                    javaex.optTip({ content : res.msg || "预约成功", type : "success" });
+                    setTimeout(function() { window.location.reload(); }, 1200);
+                } else {
+                    javaex.optTip({ content : res.msg || "预约失败", type : "error" });
+                }
+            });
+            return;
+        }
+
+        // ✅ 选择了配额时段：仍走 reserveSlot
+        $.post("/seat/reserveSlot", { "seatId": targetSeatId, "slotStart": start, "slotEnd": end }, function(res) {
+            if (res.code == "200") {
+                javaex.optTip({ content : res.msg || "预约成功", type : "success" });
+                setTimeout(function() { window.location.reload(); }, 1200);
+            } else {
+                javaex.optTip({ content : res.msg || "预约失败", type : "error" });
+            }
+        });
+    }
+
+    function loadQuotaSlots(){
+        var room = $('#roomSelect').val();
+        var date = $('#slotDate').val();
+        $('#slotHint').hide();
+        if(!room || !date){
+            $('#slotSelect').html('<option value="">选择已配置时段(可选)</option>');
+            $('#slotStart').val('');
+            $('#slotEnd').val('');
+            return;
+        }
+        $.get('/seat/quotaSlots', {room: room, date: date}, function(res){
+            if(res.code !== 200){
+                $('#slotSelect').html('<option value="">选择已配置时段(可选)</option>');
+                $('#slotStart').val('');
+                $('#slotEnd').val('');
+                return;
+            }
+            var list = res.data || [];
+
+            // 按开始时间排序（字符串/时间都兼容）
+            list.sort(function(a,b){
+                var as = a && a.slotStart ? (''+a.slotStart) : '';
+                var bs = b && b.slotStart ? (''+b.slotStart) : '';
+                if(as < bs) return -1;
+                if(as > bs) return 1;
+                return 0;
+            });
+
+            var html = '<option value="">选择已配置时段(可选)</option>';
+            if(list.length === 0){
+                $('#slotHint').show();
+            }
+            $.each(list, function(_, q){
+                var start = q.slotStart || '';
+                var end = q.slotEnd || '';
+                var left = (q.maxCount - q.reservedCount);
+                if(isNaN(left)) left = '';
+                var text = start + ' ~ ' + end + (left!=='' ? (' (剩余'+left+')') : '');
+                html += '<option value="'+ start.replace(/"/g,'&quot;') +'|'+ end.replace(/"/g,'&quot;') +'">'+ text +'</option>';
+            });
+            $('#slotSelect').html(html);
+
+            // 选择被清空时，同时清空回填时间
+            if(!$('#slotSelect').val()){
+                $('#slotStart').val('');
+                $('#slotEnd').val('');
+            }
+        });
+    }
+
+    $('#roomSelect').on('change', function(){
+        filterSeats();
+        loadQuotaSlots();
+    });
+    $('#slotDate').on('change', function(){
+        loadQuotaSlots();
+    });
+
+    $('#slotSelect').on('change', function(){
+        var v = $(this).val();
+        if(!v){
+            $('#slotStart').val('');
+            $('#slotEnd').val('');
+            return;
+        }
+        var arr = v.split('|');
+        if(arr.length === 2){
+            $('#slotStart').val(arr[0]);
+            $('#slotEnd').val(arr[1]);
+        }
+    });
+</script>
+</body>
+</html>

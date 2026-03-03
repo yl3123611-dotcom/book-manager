@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>图书详情</title>
+    <link href="../../javaex/pc/css/common.css" rel="stylesheet" />
+    <link href="../../javaex/pc/css/skin/tina.css" rel="stylesheet" />
+    <script src="../../javaex/pc/lib/jquery-1.7.2.min.js"></script>
+    <script src="../../javaex/pc/js/javaex.min.js"></script>
+    <style>
+        /* 借阅按钮区域 */
+        .action-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .btn-borrow {
+            padding: 12px 32px;
+            background: linear-gradient(90deg, #1890ff, #36cfc9);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+        }
+
+        .btn-borrow:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(24, 144, 255, 0.4);
+        }
+
+        .btn-borrow:active {
+            transform: translateY(0);
+        }
+
+        .btn-borrow:disabled {
+            background: #d9d9d9;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .btn-borrow .icon {
+            margin-right: 6px;
+        }
+
+        .borrow-status {
+            font-size: 14px;
+            color: #909399;
+        }
+
+        .borrow-status.success {
+            color: #52c41a;
+        }
+
+        .borrow-status.error {
+            color: #ff4d4f;
+        }
+
+        /* 由全局 common.css 控制灰底和留白，这里不再额外缩进 */
+        body { background-color: transparent; padding: 0; font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, sans-serif;}
+
+        .detail-box {
+            width: 100%;
+            max-width: none;
+            margin: 0;
+            background: #fff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+            display: flex;
+            gap: 40px;
+        }
+        .left-cover { flex-shrink: 0; }
+        .left-cover img {
+            width: 260px;
+            height: 360px;
+            object-fit: cover;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .right-info { flex: 1; display: flex; flex-direction: column; }
+        .book-title {
+            font-size: 26px;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #f0f0f0;
+            padding-bottom: 15px;
+        }
+
+        .intro-section { margin-top: 30px; border-top: 1px dashed #e8e8e8; padding-top: 20px; }
+        .intro-title { font-size: 16px; color: #333; font-weight: 600; margin-bottom: 15px; border-left: 4px solid #1890ff; padding-left: 10px; line-height: 1; }
+        .intro-content { font-size: 14px; line-height: 1.8; color: #666; text-indent: 2em; text-align: justify; }
+
+        .btn-back {
+            display: inline-block;
+            margin-bottom: 15px;
+            padding: 8px 16px;
+            background: #fff;
+            color: #606266;
+            border: 1px solid #dcdfe6;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn-back:hover { color: #1890ff; border-color: #91d5ff; background-color: #e6f7ff; }
+
+        /* 评论区 */
+        .comment-wrap{width:100%;max-width:none;margin:24px 0 0 0;background:#fff;border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,0.06);padding:24px;}
+        .comment-title{font-size:16px;color:#333;font-weight:600;margin-bottom:16px;border-left:4px solid #52c41a;padding-left:10px; line-height: 1;}
+        .comment-form textarea{width:100%;height:90px;resize:vertical;border:1px solid #dcdfe6;border-radius:4px;padding:12px;font-size:14px; outline: none; transition: all 0.3s;}
+        .comment-form textarea:focus { border-color: #40a9ff; box-shadow: 0 0 0 2px rgba(24,144,255,0.2); }
+
+        .comment-actions{margin-top:10px;display:flex;align-items:center;justify-content:space-between;}
+        .comment-tip{font-size:12px;color:#999;}
+
+        .btn-comment {
+            padding: 8px 20px;
+            background: #52c41a;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn-comment:hover { background: #73d13d; }
+
+        .comment-item{padding:12px 0;border-top:1px dashed #eee;}
+        .comment-meta{display:flex;align-items:center;justify-content:space-between;}
+        .comment-user{font-weight:bold;color:#333;font-size:13px;}
+        .comment-time{color:#999;font-size:12px;}
+        .comment-content{margin-top:6px;color:#555;font-size:13px;line-height:1.7;white-space:pre-wrap;}
+        .comment-more{margin-top:10px;text-align:center;}
+
+        .topic-badges{display:flex;flex-wrap:wrap;gap:8px;}
+        .topic-badge{display:inline-block;padding:2px 8px;border-radius:999px;background:#f1f3f5;color:#606266;font-size:12px;}
+        .topic-badge.dangshi{background:#fff1f0;color:#cf1322;border:1px solid #ffccc7;}
+        .btn-topic-toggle{padding:6px 12px;border-radius:6px;border:1px solid #dcdfe6;background:#fff;cursor:pointer;font-size:12px;}
+        .btn-topic-toggle:hover{border-color:#409eff;color:#409eff;}
+    </style>
+</head>
+<body>
+<div style="width: 100%; margin: 0;">
+    <a href="javascript:history.back();" class="btn-back">&lt; 返回列表</a>
+</div>
+
+<div class="detail-box">
+    <div class="left-cover">
+        <!-- 建议用一个“真实存在”的默认图 -->
+        <img id="detailCover"
+             src="/javaex/img/1.jpg"
+             alt="封面"
+             onerror="this.src='/javaex/img/1.jpg'">
+    </div>
+
+    <div class="right-info">
+        <div id="detailName" class="book-title"></div>
+
+        <div class="meta-row"><span class="meta-label">作　者：</span><span id="detailAuthor"></span></div>
+        <div class="meta-row"><span class="meta-label">出版社：</span><span id="detailPublish"></span></div>
+        <div class="meta-row"><span class="meta-label">ISBN：</span><span id="detailIsbn"></span></div>
+        <div class="meta-row"><span class="meta-label">出版时间：</span><span id="detailTime"></span></div>
+        <div class="meta-row"><span class="meta-label">页　数：</span><span id="detailPages"></span> 页</div>
+        <div class="meta-row"><span class="meta-label">分　类：</span><span id="detailType" style="background:#ecf5ff; color:#409eff; padding:2px 6px; border-radius:4px; font-size:12px;"></span></div>
+        <div class="meta-row"><span class="meta-label">库　存：</span><span id="detailSize"></span> 本</div>
+        <div class="meta-row"><span class="meta-label">定　价：</span><span id="detailPrice" class="price-tag"></span></div>
+        <div class="meta-row"><span class="meta-label">馆藏位置：</span><span id="detailLocation" style="color:#303133;"></span></div>
+        <div class="meta-row"><span class="meta-label">所属专题：</span>
+            <span id="detailTopics" class="topic-badges"></span>
+        </div>
+
+        <div class="meta-row" id="dangshiToggleRow" style="display:none;"><span class="meta-label">党史红书：</span>
+            <button id="btnDangshiToggle" class="btn-topic-toggle">加入党史红书</button>
+            <span id="dangshiToggleTip" style="margin-left:8px;color:#909399;font-size:12px;"></span>
+        </div>
+
+        <div class="action-section">
+            <button id="btnBorrow" class="btn-borrow">
+                <span class="icon">📖</span> 立即借阅
+            </button>
+            <span id="borrowStatus" class="borrow-status"></span>
+        </div>
+
+        <div class="intro-section">
+            <div class="intro-title">内容简介</div>
+            <div id="detailIntro" class="intro-content">暂无简介</div>
+        </div>
+    </div>
+</div>
+
+<div class="comment-wrap">
+    <div class="comment-title">评论区</div>
+
+    <div class="comment-form">
+        <textarea id="commentContent" placeholder="写下你的评论（最多1000字）"></textarea>
+        <div class="comment-actions">
+            <span id="commentTip" class="comment-tip">登录后可发表评论</span>
+            <button id="btnComment" class="button green radius-3" onclick="submitComment();">发表评论</button>
+        </div>
+    </div>
+
+    <div id="commentList"></div>
+
+    <div class="comment-more">
+        <button id="btnMoreComments" class="button indigo empty radius-3" onclick="loadMoreComments();" style="display:none;">加载更多</button>
+    </div>
+</div>
+
+<script>
+    function getUrlParam(name) {
+        var search = window.location.search;
+        if (!search) return null;
+        search = search.substring(1);
+        var arr = search.split("&");
+        for (var i = 0; i < arr.length; i++) {
+            var kv = arr[i].split("=");
+            if (decodeURIComponent(kv[0]) === name) {
+                return kv.length > 1 ? decodeURIComponent(kv[1]) : "";
+            }
+        }
+        return null;
+    }
+
+    function normalizeCoverPath(cover) {
+        if (!cover) return "";
+        if (/^(https?:)?\/\//.test(cover) || /^data:/.test(cover)) return cover;
+        if (cover.indexOf("/") === 0) return cover;
+        return "/" + cover;
+    }
+
+    // 全局变量存储当前图书信息
+    var currentBook = null;
+
+    // 专题/权限相关
+    var isAdminUser = false;
+    var hasDangshi = false;
+
+    function escapeHtml(s){
+        if(s==null) return "";
+        return String(s)
+            .replace(/&/g,'&amp;')
+            .replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;')
+            .replace(/'/g,'&#39;');
+    }
+
+    // ✅ 统一的初始化入口（只保留一个 document.ready）
+    $(document).ready(function() {
+        var id = getUrlParam("id");
+        if (!id) {
+            javaex && javaex.message && javaex.message({content: "缺少参数 id", type: "error"});
+            return;
+        }
+
+        // 绑定借阅按钮
+        $("#btnBorrow").on("click", function() { handleBorrow(id); });
+
+        // 专题一键按钮
+        $('#btnDangshiToggle').on('click', function(){ toggleDangshi(id); });
+
+        // 当前用户（用于：评论提示 + 是否管理员）
+        $.get("/user/currUser", function(res){
+            if(res && res.code===200 && res.data){
+                $("#commentTip").text("文明发言，共建书评社区");
+                var user = res.data;
+                var auth = (user.isAdmin !== undefined) ? user.isAdmin : user.is_admin;
+                // 项目现有逻辑：is_admin=0 为管理员
+                isAdminUser = (auth === 0 || auth === '0');
+            }else{
+                $("#commentTip").text("未登录：你可以浏览评论，但发表评论需要先登录");
+            }
+            refreshDangshiUi();
+        });
+
+        // 页面数据加载
+        loadBookDetail(id);
+        loadTopics(id);
+        loadComments(true);
+    });
+
+    function formatLocation(loc){
+        if(!loc) return "暂无定位信息";
+        var floorName = loc.floorName || '';
+        var shelfCode = loc.shelfCode || '';
+        var shelfName = loc.shelfName || '';
+        var layerNo = (loc.layerNo != null ? loc.layerNo : '');
+        var cellNo = (loc.cellNo != null ? loc.cellNo : '');
+        var callNo = loc.callNo || '';
+
+        var parts = [];
+        if(floorName) parts.push(floorName);
+        if(shelfCode || shelfName) parts.push('书架 ' + (shelfCode || shelfName));
+        if(layerNo !== '' || cellNo !== '') parts.push('第'+(layerNo!==''?layerNo:'-')+'层 / 第'+(cellNo!==''?cellNo:'-')+'格');
+        if(callNo) parts.push('索书号 ' + callNo);
+        return parts.length ? parts.join(' · ') : '暂无定位信息';
+    }
+
+    // 加载图书详情
+    function loadBookDetail(id) {
+        $.get("/book/detail", {id: id}, function(res) {
+            if (res && res.code == 200 && res.data) {
+                var book = res.data;
+                currentBook = book;
+
+                $("#detailName").text(book.name || "");
+                $("#detailAuthor").text(book.author || "-");
+                $("#detailPublish").text(book.publish || "-");
+                $("#detailIsbn").text(book.isbn || "-");
+                $("#detailTime").text(book.publishTime ? ("" + book.publishTime).substring(0, 10) : "-");
+                $("#detailPages").text(book.pages || "-");
+                $("#detailType").text(book.type || "-");
+                $("#detailSize").text(book.size || "-");
+                $("#detailPrice").text(book.price != null ? ("￥" + book.price) : "-");
+
+                // ✅ 馆藏位置
+                $("#detailLocation").text(formatLocation(book.location));
+
+                if (book.cover) {
+                    $("#detailCover").attr("src", normalizeCoverPath(book.cover));
+                }
+
+                if (book.introduction) {
+                    $("#detailIntro").html(String(book.introduction).replace(/\n/g, "<br>"));
+                } else {
+                    $("#detailIntro").text("暂无简介");
+                }
+
+                updateBorrowButton(book);
+            } else {
+                javaex && javaex.message && javaex.message({
+                    content: (res && res.msg) ? res.msg : "获取图书信息失败",
+                    type: "error"
+                });
+            }
+        }).fail(function(xhr) {
+            javaex && javaex.message && javaex.message({
+                content: "请求失败：" + (xhr.status || ""),
+                type: "error"
+            });
+        });
+    }
+
+    // 更新借阅按钮状态
+    function updateBorrowButton(book) {
+        var $btn = $("#btnBorrow");
+        var $status = $("#borrowStatus");
+
+        if (book.size > 0) {
+            $btn.prop("disabled", false);
+            $btn.html('<span class="icon">📖</span> 立即借阅');
+            $status.text("").removeClass("success error");
+        } else {
+            $btn.prop("disabled", true);
+            $btn.html('<span class="icon">📖</span> 暂无库存');
+            $status.text("").removeClass("success error");
+        }
+    }
+
+    // ✅ 最终版：借阅操作（只保留这一份）
+    function handleBorrow(bookId) {
+        var $btn = $("#btnBorrow");
+        var $status = $("#borrowStatus");
+
+        // 防止重复点击
+        if ($btn.prop("disabled")) return;
+
+        $btn.prop("disabled", true).text("借阅中...");
+        $status.text("").removeClass("success error");
+
+        // 1) 先从后端拿当前登录用户
+        $.get("/user/currUser", function(r) {
+            var user = r && r.data;
+            var userId = user && (user.id || user.userId);
+
+            if (!userId) {
+                javaex && javaex.message && javaex.message({
+                    content: "登录已失效，请重新登录",
+                    type: "error"
+                });
+                $status.text("✗ 登录已失效").addClass("error");
+                $btn.prop("disabled", false).html('<span class="icon">📖</span> 立即借阅');
+                return;
+            }
+
+            // 2) 再去借阅（后端 /borrow/add 需要 JSON）
+            $.ajax({
+                url: "/borrow/add",
+                type: "POST",
+                contentType: "application/json;charset=UTF-8",
+                data: JSON.stringify({
+                    userId: userId,
+                    bookId: parseInt(bookId, 10)
+                }),
+                success: function(res) {
+                    if (res && res.code == 200) {
+                        javaex && javaex.message && javaex.message({
+                            content: "借阅成功！",
+                            type: "success"
+                        });
+                        $status.text("✓ 借阅成功").addClass("success");
+
+                        // 更新库存显示
+                        if (currentBook) {
+                            currentBook.size = (currentBook.size || 0) - 1;
+                            $("#detailSize").text(currentBook.size);
+                            updateBorrowButton(currentBook);
+                        }
+                    } else {
+                        var errorMsg = "借阅失败";
+                        if (res && res.code == 11008) {
+                            errorMsg = "您已借阅此书，无需重复借阅";
+                        } else if (res && res.code == 11007) {
+                            errorMsg = "您的借阅额度已用完，请先归还部分图书";
+                        } else if (res && res.code == 11006) {
+                            errorMsg = "图书库存不足";
+                        } else if (res && res.msg) {
+                            errorMsg = res.msg;
+                        }
+
+                        javaex && javaex.message && javaex.message({
+                            content: errorMsg,
+                            type: "error"
+                        });
+                        $status.text("✗ " + errorMsg).addClass("error");
+                        $btn.prop("disabled", false).html('<span class="icon">📖</span> 立即借阅');
+                    }
+                },
+                error: function(xhr) {
+                    var errorMsg = "请求失败，请稍后重试";
+
+                    // 尝试解析后端返回的错误信息
+                    try {
+                        if (xhr && xhr.responseText) {
+                            var er = JSON.parse(xhr.responseText);
+                            errorMsg = er.msg || er.message || errorMsg;
+                        }
+                    } catch(e) {}
+
+                    if (xhr && xhr.status == 401) errorMsg = "未登录或登录已过期，请重新登录";
+                    else if (xhr && xhr.status == 403) errorMsg = "没有权限执行此操作";
+                    else if (xhr && xhr.status == 500) errorMsg = "服务器错误，请稍后重试";
+
+                    javaex && javaex.message && javaex.message({
+                        content: errorMsg,
+                        type: "error"
+                    });
+                    $status.text("✗ " + errorMsg).addClass("error");
+                    $btn.prop("disabled", false).html('<span class="icon">📖</span> 立即借阅');
+                }
+            });
+
+        }).fail(function() {
+            javaex && javaex.message && javaex.message({
+                content: "获取当前用户失败，请重新登录",
+                type: "error"
+            });
+            $status.text("✗ 获取用户失败").addClass("error");
+            $btn.prop("disabled", false).html('<span class="icon">📖</span> 立即借阅');
+        });
+    }
+
+    var commentPage = 1;
+    var commentPageSize = 5;
+    var commentHasMore = false;
+
+
+    function renderTopics(list){
+        var $box = $('#detailTopics');
+        if(!$box.length) return;
+        if(!list || list.length===0){
+            $box.html('<span style="color:#909399;font-size:12px;">暂无</span>');
+            return;
+        }
+        var html='';
+        for(var i=0;i<list.length;i++){
+            var t=list[i]||{};
+            var slug = t.slug || '';
+            var name = t.name || '';
+            var cls = 'topic-badge' + (slug==='dangshi-hongshu' ? ' dangshi' : '');
+            html += '<span class="'+cls+'">'+escapeHtml(name)+'</span>';
+        }
+        $box.html(html);
+    }
+
+    function loadTopics(bookId){
+        $.get('/topic/api/book/'+bookId, function(res){
+            if(res && res.code===200){
+                var list = res.data || [];
+                hasDangshi = false;
+                for(var i=0;i<list.length;i++){
+                    if(String(list[i].slug) === 'dangshi-hongshu') { hasDangshi = true; break; }
+                }
+                renderTopics(list);
+                refreshDangshiUi();
+            }else{
+                renderTopics([]);
+            }
+        });
+    }
+
+    function refreshDangshiUi(){
+        if(!isAdminUser) {
+            $('#dangshiToggleRow').hide();
+            return;
+        }
+        $('#dangshiToggleRow').show();
+        $('#btnDangshiToggle').text(hasDangshi ? '移除党史红书' : '加入党史红书');
+        $('#dangshiToggleTip').text(hasDangshi ? '该书已在党史红书专题中' : '点击将该书加入党史红书专题');
+    }
+
+    function toggleDangshi(bookId){
+        $('#btnDangshiToggle').prop('disabled', true).text('处理中...');
+        $.post('/topic/admin/dangshi/toggle', {bookId: bookId}, function(res){
+            if(res && res.code===200){
+                // res.data = true 表示加入后状态为“有”
+                hasDangshi = (res.data === true);
+                loadTopics(bookId);
+            }else{
+                javaex && javaex.message && javaex.message({content:(res && res.msg) ? res.msg : '操作失败', type:'error'});
+                refreshDangshiUi();
+            }
+        }).always(function(){
+            $('#btnDangshiToggle').prop('disabled', false);
+        });
+    }
+
+    function loadComments(reset){
+        var bookId = getUrlParam("id");
+        if(!bookId) return;
+        if(reset){
+            commentPage = 1;
+            $("#commentList").empty();
+        }
+        $.get("/comment/list", {bookId: bookId, page: commentPage, size: commentPageSize}, function(res){
+            if(res && res.code===200 && res.data){
+                var info = res.data;
+                var list = info.list || [];
+                var html = "";
+                $.each(list, function(i, c){
+                    var name = c.nickname || c.username || ("用户" + (c.userId||""));
+                    html += "<div class='comment-item'>"+
+                        "<div class='comment-meta'>"+
+                        "<span class='comment-user'>"+escapeHtml(name)+"</span>"+
+                        "<span class='comment-time'>"+escapeHtml(c.createdAt||"")+"</span>"+
+                        "</div>"+
+                        "<div class='comment-content'>"+escapeHtml(c.content||"")+"</div>"+
+                        "</div>";
+                });
+                if(reset && list.length===0){
+                    html = "<div style='color:#999;font-size:13px;padding:10px 0;'>暂无评论，来抢沙发吧～</div>";
+                }
+                $("#commentList").append(html);
+
+                commentHasMore = (info.hasNextPage === true);
+                if(commentHasMore){
+                    $("#btnMoreComments").show();
+                }else{
+                    $("#btnMoreComments").hide();
+                }
+            }
+        });
+    }
+
+    function loadMoreComments(){
+        if(!commentHasMore) return;
+        commentPage++;
+        loadComments(false);
+    }
+
+    function submitComment(){
+        var bookId = getUrlParam("id");
+        var content = $("#commentContent").val();
+        if(!content || $.trim(content)===""){
+            javaex && javaex.message && javaex.message({content:"请输入评论内容", type:"warning"});
+            return;
+        }
+        $.ajax({
+            type:"POST",
+            url:"/comment/add",
+            contentType:"application/json;charset=UTF-8",
+            data: JSON.stringify({bookId: parseInt(bookId), content: content}),
+            success:function(res){
+                if(res && res.code===200){
+                    $("#commentContent").val("");
+                    javaex && javaex.message && javaex.message({content:"评论成功", type:"success"});
+                    loadComments(true);
+                }else{
+                    javaex && javaex.message && javaex.message({content:(res && res.msg) ? res.msg : "评论失败", type:"error"});
+                }
+            }
+        });
+    }
+</script>
+
+</body>
+</html>

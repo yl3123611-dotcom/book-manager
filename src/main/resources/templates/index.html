@@ -1,0 +1,319 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+	<meta charset="utf-8">
+	<link rel="icon" type="image/x-icon" href="/favicon.ico">
+	<link href="../javaex/pc/css/icomoon.css" rel="stylesheet" />
+	<link href="../javaex/pc/css/animate.css" rel="stylesheet" />
+	<link href="../javaex/pc/css/common.css" rel="stylesheet" />
+	<link href="../javaex/pc/css/skin/tina.css" rel="stylesheet" />
+	<script src="../javaex/pc/lib/jquery-1.7.2.min.js"></script>
+	<script src="../javaex/pc/js/common.js"></script>
+	<script src="../javaex/pc/js/javaex.min.js"></script>
+	<script src="../javaex/pc/js/javaex-formVerify.js"></script>
+	<title>图书管理系统 - 后台</title>
+	<style>
+		body { background-color: #f0f2f5; font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, sans-serif; }
+		.admin-navbar {
+			background: linear-gradient(90deg, #001529 0%, #002140 100%);
+			box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+			border: none;
+            height: 64px;
+            line-height: 64px;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+		}
+		.admin-container-fluid .admin-logo {
+			font-weight: 600;
+			font-size: 20px;
+			color: #ffffff;
+			letter-spacing: 1px;
+            float: left;
+            margin-left: 20px;
+            height: 64px;
+            line-height: 64px;
+		}
+		.admin-container-fluid .admin-navbar-nav {
+            float: right;
+            margin-right: 20px;
+        }
+		.admin-container-fluid .admin-navbar-nav > li > a {
+			color: rgba(255, 255, 255, 0.85);
+			transition: color 0.3s;
+            display: block;
+            padding: 0 20px;
+            height: 64px;
+            line-height: 64px;
+		}
+		.admin-container-fluid .admin-navbar-nav > li > a:hover { color: #ffffff; background: rgba(255,255,255,0.05); }
+
+        html, body { height: 100%; }
+
+        /*      */
+        /* Revert to original flow layout */
+        .admin-mian {
+            position: absolute;
+            top: 64px;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding-left: 260px;
+        }
+
+        .admin-markdown {
+            position: static;
+            margin-left: 0;
+            height: 100%;
+            overflow: hidden;
+            background: #f0f2f5;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+
+		.menu-box .menu a {
+			color: #333;
+			font-size: 14px;
+			transition: all 0.3s;
+            height: 48px;
+            line-height: 48px;
+            padding-left: 24px;
+		}
+		.menu-box .menu a:hover { color: #1890ff; background-color: #e6f7ff; }
+		.menu-box .menu-item.hover > a {
+			color: #1890ff;
+			background-color: #e6f7ff;
+			border-left: 3px solid #1890ff;
+			padding-left: 21px; /* Compensate for border */
+		}
+		.menu-box .menu-item.hover > a i { color: #1890ff; }
+        .ui-badge {
+            background-color: #ff4d4f;
+            color: #fff;
+            padding: 0 6px;
+            border-radius: 10px;
+            font-size: 12px;
+            margin-left: 5px;
+            line-height: 18px;
+            height: 18px;
+            display: inline-block;
+        }
+	</style>
+</head>
+<body>
+<div class="admin-navbar">
+	<div class="admin-container-fluid clear">
+		<div class="admin-logo">图书管理系统</div>
+
+		<ul class="admin-navbar-nav fr">
+			<li>
+				<a href="javascript:;">欢迎您，<span id="nickname">用户</span></a>
+				<ul class="dropdown-menu" style="right: 10px; border: none; box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1); top: 60px;">
+					<li><a href="/logout">退出当前账号</a></li>
+				</ul>
+			</li>
+		</ul>
+	</div>
+</div>
+
+<div class="admin-mian">
+	<div class="admin-aside admin-aside-fixed">
+		<div id="admin-toc" class="admin-toc">
+			<div class="menu-box">
+				<div id="menu" class="menu">
+					<ul>
+						<li class="menu-item hover">
+							<a href="javascript:page('welcome');"><i class="icon-home2"></i>首页</a>
+						</li>
+
+						<!-- ✅ 给首页管理加 id，普通用户时整块隐藏 -->
+						<li class="menu-item" id="home-manage">
+							<a href="javascript:;">首页管理<i class="icon-keyboard_arrow_left"></i></a>
+							<ul>
+								<li><a href="javascript:page('admin/banner-list');">轮播图管理</a></li>
+								<li><a href="javascript:page('admin/recommend-list');">热门推荐管理</a></li>
+							</ul>
+						</li>
+
+						<li class="menu-item">
+							<a href="javascript:;">图书管理<i class="icon-keyboard_arrow_left"></i></a>
+							<ul>
+								<li><a id="book-list" href="javascript:page('book/book-list');">图书列表</a></li>
+								<li><a href="javascript:page('book/book-search');">图书搜索（热门/推荐）</a></li>
+								<li><a id="add-book" href="javascript:page('book/book-add');">图书上架</a></li>
+								<li>
+									<a href="javascript:page('/recommend.html');" style="color: #ff9800;">
+										<i class="icon-star-full" style="margin-right:5px;"></i>智能好书推荐
+									</a>
+								</li>
+								<li><a href="javascript:page('/recommend/history-view');">我的推荐历史</a></li>
+							</ul>
+						</li>
+
+						<li class="menu-item">
+							<a href="javascript:;">借阅管理<i class="icon-keyboard_arrow_left"></i></a>
+							<ul>
+								<li><a id="book-search" href="javascript:page('borrow/book-search');">搜索图书</a></li>
+								<li><a id="book-borrow" href="javascript:page('borrow/borrow');">借阅图书</a></li>
+								<li><a id="book-back" href="javascript:page('borrow/back');">归还图书</a></li>
+							</ul>
+						</li>
+
+						<li class="menu-item" id="reader-manage">
+							<a href="javascript:;">读者管理<i class="icon-keyboard_arrow_left"></i></a>
+							<ul>
+								<li><a id="reader-list" href="javascript:page('reader/reader-list');">读者列表</a></li>
+								<li><a id="reader-add" href="javascript:page('reader/reader-add');">读者添加</a></li>
+							</ul>
+						</li>
+
+						<li class="menu-item">
+							<a href="javascript:;">用户中心<i class="icon-keyboard_arrow_left"></i></a>
+							<ul>
+								<li><a id="user-info" href="javascript:page('user/user-info');">个人信息</a></li>
+								<li><a href="javascript:page('/profile/my');">我的用户画像</a></li>
+								<li><a href="javascript:page('/report/my');">我的阅读报告</a></li>
+								<li><a href="javascript:page('/actions/my');">我的行为记录</a></li>
+								<li><a id="user-manage" href="javascript:page('user/user-list');">用户管理</a></li>
+								<li><a id="admin-add" href="javascript:page('user/user-add');">添加管理员</a></li>
+							</ul>
+						</li>
+
+						<li class="menu-item">
+							<a href="javascript:;">
+								<i class="icon-event_seat"></i> 座位管理
+								<i class="icon-keyboard_arrow_left"></i>
+							</a>
+							<ul>
+								<li><a href="javascript:page('/seat/list');">座位预约</a></li>
+								<li><a href="javascript:page('/seat/my');">我的预约</a></li>
+								<li><a id="seat-manage" href="javascript:page('/seat/manage');">座位管理</a></li>
+								<li><a id="room-manage" href="javascript:page('/seat/room-manage');">阅览室管理</a></li>
+								<li><a id="seat-rule" href="javascript:page('/seat/rule/config');">预约规则配置</a></li>
+								<li><a id="seat-quota" href="javascript:page('/seat/rule/quota');">时段配额配置</a></li>
+							</ul>
+						</li>
+
+						<li class="menu-item">
+							<a href="javascript:;">通知中心<i class="icon-keyboard_arrow_left"></i></a>
+							<ul>
+								<li><a href="javascript:page('notify/notify-list');">我的通知 <span id="notify-badge" style="display:none;" class="ui-badge">0</span></a></li>
+							</ul>
+						</li>
+
+						<li class="menu-item">
+							<a href="javascript:;">论坛交流<i class="icon-keyboard_arrow_left"></i></a>
+							<ul>
+								<li><a href="javascript:page('forum/post-list');">论坛首页</a></li>
+								<li><a href="javascript:page('forum/post-add');">我要发帖</a></li>
+								<li id="forum-admin-manage"><a href="javascript:page('forum/admin/manage');">帖子管理</a></li>
+							</ul>
+						</li>
+
+						<li class="menu-item">
+							<a href="javascript:;">专题栏目<i class="icon-keyboard_arrow_left"></i></a>
+							<ul>
+								<li><a href="javascript:page('special/hongloumeng');">红楼梦专区</a></li>
+								<li><a href="javascript:page('/topic/dangshi-hongshu');">党史红书</a></li>
+								<li id="special-admin-manage"><a href="javascript:page('special/admin/manage');">专题管理</a></li>
+							</ul>
+						</li>
+
+						<li class="menu-item">
+							<a href="javascript:;">公告管理<i class="icon-keyboard_arrow_left"></i></a>
+							<ul>
+								<li><a href="javascript:page('announcement/list');">公告列表</a></li>
+								<li id="announcement-admin-manage"><a href="javascript:page('announcement/admin/manage');">公告发布/管理</a></li>
+							</ul>
+						</li>
+
+					</ul>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="admin-markdown">
+		<iframe id="page" name="iframe" src="welcome"></iframe>
+	</div>
+</div>
+</body>
+
+<script>
+	var hightUrl = "xxxx";
+	javaex.menu({
+		id : "menu",
+		isAutoSelected : true,
+		key : "",
+		url : hightUrl
+	});
+
+	$(function() {
+		setMenuHeight();
+	});
+
+	function setMenuHeight() {
+		var height = document.documentElement.clientHeight - $("#admin-toc").offset().top;
+		height = height - 10;
+		$("#admin-toc").css("height", height + "px");
+	}
+
+	function page(url) {
+		$("#page").attr("src", url);
+	}
+
+	$(document).ready(function(){
+		// 读取当前登录用户信息
+		$.get("/user/currUser", function(data){
+			console.log("currUser:", data);
+
+			if (data && data.code == 200 && data.data) {
+				var user = data.data;
+
+				// 设置昵称（防空）
+				$("#nickname").text(user.nickname || user.username || "用户");
+
+				// 兼容 isAdmin / is_admin
+				var auth = (user.isAdmin !== undefined) ? user.isAdmin : user.is_admin;
+
+				// 普通用户：隐藏管理菜单
+				if (auth != 0) {
+					$("#home-manage").hide();  // ✅ 首页管理整块隐藏
+					$("#add-book").hide();     // 图书上架
+					$("#reader-add").hide();   // 读者添加
+					$("#user-manage").hide();  // 用户管理
+					$("#admin-add").hide();    // 添加管理员
+					$("#seat-manage").hide();  // 座位管理
+					$("#room-manage").hide();  // 阅览室管理
+					$("#reader-manage").hide();//读者管理
+					$("#seat-rule").hide();
+					$("#seat-quota").hide();
+					$("#forum-admin-manage").hide(); // 论坛管理
+					$("#nav-admin-manage").hide();   // 馆藏管理
+					$("#special-admin-manage").hide(); // 专题管理
+					$("#announcement-admin-manage").hide(); // 公告发布/管理
+				}
+			}
+			return false;
+		});
+
+		// 通知未读数
+		$.get("/notify/unreadCount", function(res){
+			if(res && res.code === 200){
+				var c = res.data || 0;
+				if(c > 0){
+					$("#notify-badge").text(c).show();
+				}else{
+					$("#notify-badge").hide();
+				}
+			}
+		});
+	});
+</script>
+</html>

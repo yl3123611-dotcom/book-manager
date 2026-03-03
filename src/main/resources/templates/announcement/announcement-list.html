@@ -1,0 +1,87 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="../javaex/pc/css/icomoon.css" rel="stylesheet" />
+    <link href="../javaex/pc/css/animate.css" rel="stylesheet" />
+    <link href="../javaex/pc/css/common.css" rel="stylesheet" />
+    <link href="../javaex/pc/css/skin/tina.css" rel="stylesheet" />
+    <script src="../javaex/pc/lib/jquery-1.7.2.min.js"></script>
+    <script src="../javaex/pc/js/common.js"></script>
+    <script src="../javaex/pc/js/javaex.min.js"></script>
+    <title>公告列表</title>
+    <style>
+        body { background-color: #f0f2f5; }
+        .page-wrap { padding: 16px; }
+        .ann-card { background: #fff; border: 1px solid #e8e8e8; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px; }
+        .ann-title { font-size: 16px; font-weight: 600; color: rgba(0,0,0,0.85); cursor: pointer; }
+        .ann-time { color: rgba(0,0,0,0.45); font-size: 12px; margin-top: 6px; }
+        .ann-content { color: rgba(0,0,0,0.65); margin-top: 10px; line-height: 1.7; display: none; }
+        .empty { padding: 20px; text-align: center; color: rgba(0,0,0,0.45); }
+    </style>
+</head>
+<body>
+<div class="page-wrap">
+    <div class="breadcrumb">
+        <span>公告管理</span>
+        <span class="divider">/</span>
+        <span class="active">公告列表</span>
+    </div>
+
+    <div id="annList"></div>
+    <div id="annEmpty" class="empty" style="display:none;">暂无公告</div>
+</div>
+
+<script>
+    function escapeHtml(s){
+        if(s === null || s === undefined) return '';
+        return String(s)
+            .replace(/&/g,'&amp;')
+            .replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;')
+            .replace(/'/g,'&#39;');
+    }
+
+    function fmtTime(t){
+        if(!t) return '';
+        return String(t).replace('T',' ').substring(0,19);
+    }
+
+    function render(list){
+        var $box = $("#annList");
+        $box.empty();
+        if(!list || list.length === 0){
+            $("#annEmpty").show();
+            return;
+        }
+        $("#annEmpty").hide();
+        for(var i=0;i<list.length;i++){
+            var a = list[i];
+            var id = a.id;
+            var html = '';
+            html += '<div class="ann-card" data-id="'+ id +'">';
+            html +=   '<div class="ann-title">' + escapeHtml(a.title || '') + (a.pinned==1 ? ' <span style="color:#ff4d4f;font-size:12px;">[置顶]</span>' : '') + '</div>';
+            html +=   '<div class="ann-time">发布时间：' + escapeHtml(fmtTime(a.publishTime)) + '</div>';
+            html +=   '<div class="ann-content">' + escapeHtml(a.content || '').replace(/\n/g,'<br/>') + '</div>';
+            html += '</div>';
+            $box.append(html);
+        }
+
+        $box.find('.ann-title').off('click').on('click', function(){
+            $(this).closest('.ann-card').find('.ann-content').slideToggle(120);
+        });
+    }
+
+    $(function(){
+        $.get('/announcement/top?limit=20', function(res){
+            if(res && res.code === 200){
+                render(res.data);
+            }else{
+                render([]);
+            }
+        });
+    });
+</script>
+</body>
+</html>

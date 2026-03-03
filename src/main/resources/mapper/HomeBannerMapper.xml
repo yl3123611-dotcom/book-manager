@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.book.manager.dao.HomeBannerMapper">
+
+    <select id="listAll" resultType="com.book.manager.entity.HomeBanner">
+        select
+            id,
+            title,
+            image_url as imageUrl,
+            link_url as linkUrl,
+            sort,
+            enabled,
+            create_time as createTime,
+            update_time as updateTime
+        from home_banner
+        order by sort asc, id desc
+    </select>
+
+    <select id="listEnabled" resultType="com.book.manager.entity.HomeBanner">
+        select
+            id,
+            title,
+            image_url as imageUrl,
+            link_url as linkUrl,
+            sort,
+            enabled,
+            create_time as createTime,
+            update_time as updateTime
+        from home_banner
+        where enabled = 1
+        order by sort asc, id desc
+    </select>
+
+    <insert id="insert" parameterType="com.book.manager.entity.HomeBanner" useGeneratedKeys="true" keyProperty="id">
+        insert into home_banner(title, image_url, link_url, sort, enabled)
+        values (#{title}, #{imageUrl}, #{linkUrl}, #{sort}, #{enabled})
+    </insert>
+
+    <update id="update" parameterType="com.book.manager.entity.HomeBanner">
+        update home_banner
+        set
+            title = #{title},
+            image_url = #{imageUrl},
+            link_url = #{linkUrl},
+            sort = #{sort},
+            enabled = #{enabled}
+        where id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        delete from home_banner where id = #{id}
+    </delete>
+
+    <update id="setEnabled">
+        update home_banner set enabled = #{enabled} where id = #{id}
+    </update>
+
+</mapper>

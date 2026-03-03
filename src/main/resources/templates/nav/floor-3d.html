@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>3D 馆藏楼层视图</title>
+    <style>
+        body{margin:0;overflow:hidden;font-family:Arial;}
+        #info{position:absolute;left:12px;top:12px;z-index:10;background:rgba(255,255,255,0.95);padding:8px;border-radius:6px;max-width:380px;}
+        #books{margin-top:8px;max-height:260px;overflow:auto;border-top:1px solid #eee;padding-top:8px;}
+        #books a{display:block;padding:6px 0;border-bottom:1px dashed #eee;color:#1677ff;text-decoration:none;}
+        #msg{margin-top:6px;color:#999;font-size:12px;}
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+</head>
+<body>
+<div id="info">
+    请选择楼层：<select id="floorSel" aria-label="楼层"></select>
+    <button onclick="loadFloor()">加载楼层</button>
+    <div id="msg">提示：拖动鼠标旋转视角，滚轮缩放；点击书架方块查看书架图书</div>
+    <div id="books"></div>
+</div>
+<canvas id="c"></canvas>
+<script>
+    let scene, camera, renderer, raycaster, mouse;
+    let dragging=false, lastX=0, lastY=0;
+    let camYaw = -0.6, camPitch = 0.55, camDist = 140;
+    let hovered = null;
+
+    function setMsg(t){ document.getElementById('msg').textContent = t || ''; }
+
+    function init(){
+        const canvas = document.getElementById('c');
+        renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio || 1);
+
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf4f6f8);
+
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 2000);
+
+        const light = new THREE.DirectionalLight(0xffffff,1);
+        light.position.set(0,120,120);
+        scene.add(light);
+        scene.add(new THREE.AmbientLight(0x6b6b6b));
+
+        // ground
+        const g = new THREE.PlaneGeometry(600, 600);
+        const gm = new THREE.MeshLambertMaterial({color:0xffffff});
+        const ground = new THREE.Mesh(g, gm);
+        ground.rotation.x = -Math.PI/2;
+        ground.position.y = 0;
+        scene.add(ground);
+
+        raycaster = new THREE.Raycaster();
+        mouse = new THREE.Vector2();
+
+        updateCamera();
+        animate();
+
+        window.addEventListener('click', onClick);
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mousedown', onDown);
+        window.addEventListener('mouseup', onUp);
+        window.addEventListener('wheel', onWheel, {passive:true});
+        window.addEventListener('resize', ()=>{
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth/window.innerHeight;
+            camera.updateProjectionMatrix();
+        });
+    }
+
+    function updateCamera(){
+        const x = Math.cos(camPitch) * Math.cos(camYaw) * camDist;
+        const z = Math.cos(camPitch) * Math.sin(camYaw) * camDist;
+        const y = Math.sin(camPitch) * camDist;
+        camera.position.set(x, y + 20, z);
+        camera.lookAt(0, 10, 0);
+    }
+
+    function animate(){ requestAnimationFrame(animate); renderer.render(scene, camera); }
+
+    function onDown(e){ dragging=true; lastX=e.clientX; lastY=e.clientY; }
+    function onUp(){ dragging=false; }
+
+    function onWheel(e){
+        camDist += (e.deltaY>0 ? 10 : -10);
+        camDist = Math.max(60, Math.min(300, camDist));
+        updateCamera();
+    }
+
+    function onMove(e){
+        if(dragging){
+            const dx = e.clientX - lastX;
+            const dy = e.clientY - lastY;
+            lastX = e.clientX; lastY = e.clientY;
+            camYaw += dx * 0.005;
+            camPitch -= dy * 0.004;
+            camPitch = Math.max(0.15, Math.min(1.2, camPitch));
+            updateCamera();
+        }
+
+        // hover highlight
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = - (e.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(scene.children, true);
+        const pick = intersects.find(it => it.object && it.object.userData && it.object.userData.shelfId);
+        if(pick && pick.object !== hovered){
+            if(hovered && hovered.material && hovered.userData && hovered.userData.baseColor!=null){
+                hovered.material.color.setHex(hovered.userData.baseColor);
+            }
+            hovered = pick.object;
+            if(hovered.material){
+                hovered.userData.baseColor = hovered.material.color.getHex();
+                hovered.material.color.setHex(0xffc107);
+            }
+        } else if(!pick && hovered){
+            if(hovered.material && hovered.userData && hovered.userData.baseColor!=null){
+                hovered.material.color.setHex(hovered.userData.baseColor);
+            }
+            hovered = null;
+        }
+    }
+
+    function onClick(e){
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = - (e.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(scene.children, true);
+        if(intersects.length>0){
+            const obj = intersects[0].object;
+            if(obj.userData && obj.userData.shelfId){
+                loadShelfBooks(obj.userData.shelfId, obj.userData.shelfCode);
+            }
+        }
+    }
+
+    function safeJson(r){
+        if(!r.ok) throw new Error('HTTP '+r.status);
+        return r.json();
+    }
+
+    function loadFloors(){
+        setMsg('正在加载楼层...');
+        fetch('/nav/floors').then(safeJson).then(j=>{
+            if(j.code==200){
+                const sel=document.getElementById('floorSel');
+                sel.innerHTML='';
+                (j.data||[]).forEach(function(f){
+                    const o=document.createElement('option');
+                    o.value=f.id; o.textContent=f.name;
+                    sel.appendChild(o);
+                });
+                setMsg('提示：拖动鼠标旋转视角，滚轮缩放；点击书架方块查看书架图书');
+            } else {
+                setMsg('加载楼层失败');
+            }
+        }).catch(()=>setMsg('加载楼层失败：请确认服务已启动'));
+    }
+
+    function clearMeshes(){
+        for(let i=scene.children.length-1;i>=0;i--){
+            const c=scene.children[i];
+            if(c.type==='Mesh' && c.geometry && c.geometry.type==='BoxGeometry') scene.remove(c);
+        }
+    }
+
+    function loadFloor(){
+        const f=document.getElementById('floorSel').value;
+        if(!f) return;
+        setMsg('正在加载书架...');
+        fetch('/nav/shelves?floorId='+encodeURIComponent(f)).then(safeJson).then(j=>{
+            if(j.code==200){
+                clearMeshes();
+                const list=j.data||[];
+                list.forEach(function(s, idx){
+                    const geo=new THREE.BoxGeometry(8,12,3);
+                    const mat=new THREE.MeshLambertMaterial({color:0x88c0ff});
+                    const m=new THREE.Mesh(geo, mat);
+                    const px = (s.x!=null ? s.x : (idx*12));
+                    const pz = (s.y!=null ? s.y : 0);
+                    m.position.set(px-50, 6, pz-20);
+                    m.userData={shelfId:s.id, shelfCode:s.code};
+                    scene.add(m);
+                });
+                document.getElementById('books').innerHTML='';
+                setMsg('已加载 '+list.length+' 个书架，点击任一书架查看图书');
+            } else {
+                setMsg('加载书架失败');
+            }
+        }).catch(()=>setMsg('加载书架失败：请确认接口 /nav/shelves 可用'));
+    }
+
+    function loadShelfBooks(shelfId, shelfCode){
+        setMsg('正在加载书架图书...');
+        fetch('/nav/shelf/books?shelfId='+encodeURIComponent(shelfId)).then(safeJson).then(j=>{
+            if(j.code==200){
+                const list=j.data||[];
+                let html='<div><b>书架 '+(shelfCode||'')+' (id='+shelfId+')</b></div>';
+                if(list.length===0) html += '<div style="color:#999;">该书架暂无绑定图书</div>';
+                list.forEach(function(b){
+                    html += '<a href="/book/detail-view?id='+b.id+'" target="_blank">'+(b.name||'')+' — '+(b.author||'')+'</a>';
+                });
+                document.getElementById('books').innerHTML=html;
+                setMsg('书架图书加载完成（'+list.length+' 本）');
+            } else {
+                setMsg('加载书架图书失败');
+            }
+        }).catch(()=>setMsg('加载书架图书失败：请确认接口 /nav/shelf/books 可用'));
+    }
+
+    init();
+    loadFloors();
+</script>
+</body>
+</html>

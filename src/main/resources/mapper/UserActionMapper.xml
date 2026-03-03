@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.book.manager.dao.UserActionMapper">
+
+    <resultMap id="UserActionMap" type="com.book.manager.entity.UserAction">
+        <id column="id" property="id"/>
+        <result column="action_type" property="actionType"/>
+        <result column="book_id" property="bookId"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="score" property="score"/>
+        <result column="user_id" property="userId"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.book.manager.entity.UserAction" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user_actions (action_type, book_id, created_at, score, user_id)
+        VALUES (#{actionType}, #{bookId}, NOW(6), #{score}, #{userId})
+    </insert>
+
+    <select id="listByUser" resultMap="UserActionMap">
+        SELECT *
+        FROM user_actions
+        WHERE user_id = #{userId}
+        ORDER BY created_at DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <select id="listByBook" resultMap="UserActionMap">
+        SELECT *
+        FROM user_actions
+        WHERE book_id = #{bookId}
+        ORDER BY created_at DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+</mapper>

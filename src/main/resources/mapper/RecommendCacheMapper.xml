@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.book.manager.dao.RecommendCacheMapper">
+
+    <resultMap id="RecommendCacheMap" type="com.book.manager.entity.RecommendCache">
+        <id column="user_id" property="userId"/>
+        <result column="recs_json" property="recsJson"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="findByUserId" resultMap="RecommendCacheMap">
+        SELECT * FROM recommend_cache WHERE user_id = #{userId}
+    </select>
+
+    <insert id="upsert" parameterType="com.book.manager.entity.RecommendCache">
+        INSERT INTO recommend_cache (user_id, recs_json, updated_at)
+        VALUES (#{userId}, #{recsJson}, NOW(6))
+        ON DUPLICATE KEY UPDATE
+            recs_json = VALUES(recs_json),
+            updated_at = NOW(6)
+    </insert>
+
+</mapper>

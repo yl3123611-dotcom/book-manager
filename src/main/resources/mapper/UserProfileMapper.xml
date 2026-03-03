@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.book.manager.dao.UserProfileMapper">
+
+    <resultMap id="UserProfileMap" type="com.book.manager.entity.UserProfile">
+        <id column="user_id" property="userId"/>
+        <result column="active_score" property="activeScore"/>
+        <result column="favorite_categories" property="favoriteCategories"/>
+        <result column="grade" property="grade"/>
+        <result column="interests" property="interests"/>
+        <result column="majors" property="majors"/>
+        <result column="overdue_rate" property="overdueRate"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="findByUserId" resultMap="UserProfileMap">
+        SELECT * FROM user_profile WHERE user_id = #{userId}
+    </select>
+
+    <insert id="upsert" parameterType="com.book.manager.entity.UserProfile">
+        INSERT INTO user_profile (user_id, active_score, favorite_categories, grade, interests, majors, overdue_rate, updated_at)
+        VALUES (#{userId}, #{activeScore}, #{favoriteCategories}, #{grade}, #{interests}, #{majors}, #{overdueRate}, NOW(6))
+        ON DUPLICATE KEY UPDATE
+            active_score = VALUES(active_score),
+            favorite_categories = VALUES(favorite_categories),
+            grade = VALUES(grade),
+            interests = VALUES(interests),
+            majors = VALUES(majors),
+            overdue_rate = VALUES(overdue_rate),
+            updated_at = NOW(6)
+    </insert>
+
+</mapper>

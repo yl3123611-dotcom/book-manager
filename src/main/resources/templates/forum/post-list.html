@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>论坛 - 帖子列表</title>
+    <link href="../../javaex/pc/css/common.css" rel="stylesheet" />
+    <link href="../../javaex/pc/css/skin/tina.css" rel="stylesheet" />
+    <script src="../../javaex/pc/lib/jquery-1.7.2.min.js"></script>
+    <script src="../../javaex/pc/js/javaex.min.js"></script>
+</head>
+<body>
+<div class="block">
+    <h2>论坛 - 帖子列表</h2>
+    <div class="main">
+        <div style="margin-bottom:12px;">
+            <input id="keyword" class="text" style="width:420px" placeholder="搜索帖子标题或内容" />
+            <button class="button blue" onclick="search()">搜索</button>
+            <button class="button green" onclick="toAdd()">发帖</button>
+        </div>
+
+        <div id="list"></div>
+        <div class="page"><ul id="page" class="pagination"></ul></div>
+    </div>
+</div>
+
+<script>
+    function toAdd(){ window.location.href = '/forum/post-add'; }
+    function openDetail(id){ window.location.href = '/forum/post-detail?id=' + id; }
+
+    function render(list){
+        var html = '';
+        for(var i=0;i<list.length;i++){
+            var it = list[i];
+            html += '<div style="padding:12px;border-bottom:1px solid #eee;cursor:pointer;" onclick="openDetail('+it.id+')">'
+                + '<div style="font-weight:bold">'+(it.title||'')+'</div>'
+                + '<div style="color:#888;font-size:12px;margin-top:6px">'+(it.summary||'')+'</div>'
+                + '<div style="color:#999;font-size:12px;margin-top:6px">阅读 '+(it.viewCount||0)+' • 回复 '+(it.replyCount||0)+' • '+(it.createdAt||'')+'</div>'
+                + '</div>';
+        }
+        $('#list').html(html);
+    }
+
+    function loadPage(currPage, perPage){
+        var keyword = $('#keyword').val();
+        $.ajax({ url: '/forum/api/posts/page', type: 'POST', contentType: 'application/json', data: JSON.stringify({currPage: currPage, pageSize: perPage, keyword: keyword}), success: function(res){ if(res && res.code==200){ var p = res.data; render(p.list||[]); var total = p.total||0; var pageSize = p.pageSize||10; var pageCount = Math.ceil(total/pageSize); javaex.page({ id: 'page', pageCount: pageCount, currentPage: p.currPage, perPageCount: pageSize, totalNum: total, position: 'center', callback: function(r){ loadPage(r.pageNum, r.perPageCount); } }); } } });
+    }
+
+    function search(){ loadPage(1,10); }
+
+    $(document).ready(function(){ loadPage(1,10); });
+</script>
+</body>
+</html>

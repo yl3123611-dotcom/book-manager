@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>专题管理</title>
+    <link href="../../javaex/pc/css/common.css" rel="stylesheet" />
+    <link href="../../javaex/pc/css/skin/tina.css" rel="stylesheet" />
+    <script src="../../javaex/pc/lib/jquery-1.7.2.min.js"></script>
+</head>
+<body>
+<div class="block">
+    <h2>专题管理</h2>
+    <div class="main">
+
+        <div style="display:flex; gap:20px;">
+            <div style="width:360px;">
+                <h3>添加专题</h3>
+                <div style="margin-top:8px;">
+                    <label for="slug">slug:</label>
+                    <input id="slug" class="text" style="width:220px" placeholder="hongloumeng" />
+                </div>
+                <div style="margin-top:8px;">
+                    <label for="name">名称:</label>
+                    <input id="name" class="text" style="width:220px" placeholder="红楼梦专区" />
+                </div>
+                <div style="margin-top:8px;">
+                    <label for="desc">简介:</label>
+                    <input id="desc" class="text" style="width:220px" placeholder="可选" />
+                </div>
+                <div style="margin-top:8px;">
+                    <button class="button green" onclick="addTopic()">添加</button>
+                </div>
+
+                <h3 style="margin-top:16px;">专题列表</h3>
+                <div>
+                    <label for="topicSel">选择专题:</label>
+                    <select id="topicSel" class="select" style="width:260px" onchange="onTopicChange()"></select>
+                </div>
+                <div id="topicMeta" style="margin-top:8px;color:#666;font-size:12px;"></div>
+
+                <div id="msg" style="margin-top:10px;color:#409eff;font-size:12px;"></div>
+            </div>
+
+            <div style="flex:1;">
+                <h3>给专题添加图书（可搜索）</h3>
+                <div style="margin-top:8px;">
+                    <label for="kw">关键词:</label>
+                    <input id="kw" class="text" style="width:260px" placeholder="书名/作者/ISBN" />
+                    <button class="button" onclick="searchBook()">搜索</button>
+                </div>
+                <div id="bookList" style="margin-top:10px;"></div>
+
+                <h3 style="margin-top:16px;">当前专题书单</h3>
+                <div id="topicBooks" style="margin-top:10px;"></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    var topicList = [];
+    var currentTopic = null;
+
+    function setMsg(t){ $('#msg').text(t||''); }
+
+    function loadTopics(){
+        $.get('/topic/admin/list', function(res){
+            if(res && res.code==200){
+                topicList = res.data || [];
+                var sel = $('#topicSel');
+                sel.empty();
+                for(var i=0;i<topicList.length;i++){
+                    var t = topicList[i];
+                    sel.append('<option value="'+t.id+'" data-slug="'+t.slug+'">'+t.name+' (id='+t.id+', slug='+t.slug+')</option>');
+                }
+                if(topicList.length>0){
+                    currentTopic = topicList[0];
+                    sel.val(currentTopic.id);
+                    renderTopicMeta(currentTopic);
+                    loadTopicBooksBySlug(currentTopic.slug);
+                } else {
+                    $('#topicMeta').text('暂无专题');
+                    $('#topicBooks').html('');
+                }
+                setMsg('');
+            } else {
+                setMsg('加载专题失败');
+            }
+        });
+    }
+
+    function renderTopicMeta(t){
+        if(!t){ $('#topicMeta').text(''); return; }
+        $('#topicMeta').html('slug: <b>'+t.slug+'</b><br/>创建时间: '+(t.createdAt||'')+'<br/>简介: '+(t.description||'') );
+    }
+
+    function onTopicChange(){
+        var id = parseInt($('#topicSel').val(),10);
+        currentTopic = null;
+        for(var i=0;i<topicList.length;i++){
+            if(parseInt(topicList[i].id,10)===id){ currentTopic = topicList[i]; break; }
+        }
+        renderTopicMeta(currentTopic);
+        if(currentTopic) loadTopicBooksBySlug(currentTopic.slug);
+    }
+
+    function addTopic(){
+        var slug=$('#slug').val();
+        var name=$('#name').val();
+        var desc=$('#desc').val();
+        if(!slug||!name){ alert('请输入slug和名称'); return; }
+        $.post('/topic/admin/add',{slug:slug,name:name,description:desc}, function(res){
+            if(res && res.code==200){
+                $('#slug').val(''); $('#name').val(''); $('#desc').val('');
+                loadTopics();
+            } else {
+                alert(res.msg||'添加失败');
+            }
+        });
+    }
+
+    function searchBook(){
+        var kw=$('#kw').val();
+        setMsg('正在搜索图书...');
+        $.ajax({
+            url:'/book/list',
+            type:'POST',
+            contentType:'application/json;charset=UTF-8',
+            data: JSON.stringify({currPage:1,pageSize:10,keyword:kw}),
+            success:function(res){
+                if(res && res.code==200){
+                    var list = (res.data && res.data.list) ? res.data.list : [];
+                    var html='';
+                    for(var i=0;i<list.length;i++){
+                        var b=list[i];
+                        html += '<div style="padding:8px;border-bottom:1px solid #eee;">'
+                            + (b.name||'') + ' — ' + (b.author||'') + ' (id='+b.id+') '
+                            + '<button class="button small blue" onclick="addBookToTopic('+b.id+')">加入专题</button>'
+                            + ' <a href="/book/detail-view?id='+b.id+'" target="_blank" style="margin-left:8px;">详情</a>'
+                            + '</div>';
+                    }
+                    $('#bookList').html(html || '<div>无结果</div>');
+                    setMsg(list.length>0 ? ('搜索到 '+list.length+' 本图书') : '未搜索到图书');
+                } else {
+                    setMsg('搜索失败');
+                }
+            }
+        });
+    }
+
+    function addBookToTopic(bookId){
+        if(!currentTopic){ alert('请先选择专题'); return; }
+        $.post('/topic/admin/addBook',{topicId: currentTopic.id, bookId: bookId, sort: 0}, function(res){
+            if(res && res.code==200){
+                // INSERT IGNORE: 如果已存在，后端可能返回 code=200 但影响行数=0，我们这里统一提示“已在专题中/已加入”
+                setMsg('操作成功：如已存在则不会重复添加');
+                loadTopicBooksBySlug(currentTopic.slug);
+            } else {
+                alert(res.msg||'加入失败');
+            }
+        });
+    }
+
+    function loadTopicBooksBySlug(slug){
+        $('#topicBooks').html('加载中...');
+        $.get('/topic/api/'+slug+'/books', function(res){
+            if(res && res.code==200){
+                var list = res.data || [];
+                var html='';
+                for(var i=0;i<list.length;i++){
+                    var b=list[i];
+                    html += '<div style="padding:8px;border-bottom:1px dashed #eee;">'
+                        + '<a href="/book/detail-view?id='+b.id+'" target="_blank">'+(b.name||'')+'</a>'
+                        + ' — '+(b.author||'')
+                        + '</div>';
+                }
+                $('#topicBooks').html(html || '<div style="color:#999;">该专题暂无图书</div>');
+            } else {
+                $('#topicBooks').html('<div style="color:red;">加载失败</div>');
+            }
+        });
+    }
+
+    $(document).ready(function(){
+        loadTopics();
+        $('#kw').on('keydown', function(e){ if(e.keyCode===13) searchBook(); });
+    });
+</script>
+</body>
+</html>

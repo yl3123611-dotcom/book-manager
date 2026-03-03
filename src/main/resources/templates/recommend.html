@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>智能好书推荐</title>
+    <link href="../javaex/pc/css/common.css" rel="stylesheet" />
+    <link href="../javaex/pc/css/skin/tina.css" rel="stylesheet" />
+    <script src="../javaex/pc/lib/jquery-1.7.2.min.js"></script>
+    <script src="../javaex/pc/js/javaex.min.js"></script>
+    <style>
+        body { background-color: #f5f7fa; font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif; }
+
+        .chat-container {
+            max-width: 900px;
+            margin: 20px auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            height: 85vh;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            padding: 15px 25px;
+            border-bottom: 1px solid #ebeef5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+        }
+        .chat-title { font-size: 16px; font-weight: bold; color: #333; display: flex; align-items: center; }
+        .chat-title i { color: #409eff; font-size: 20px; margin-right: 10px; }
+
+        .chat-body {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f9f9f9;
+        }
+
+        /* 消息行 */
+        .message-row { display: flex; margin-bottom: 25px; align-items: flex-start; }
+
+        /* 机器人消息 */
+        .message-row.ai .avatar { margin-right: 12px; background: #e1f3d8; color: #67c23a; }
+        .message-row.ai .bubble {
+            background: #fff;
+            border-top-left-radius: 2px;
+            color: #333;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        }
+
+        /* 用户消息 */
+        .message-row.user { justify-content: flex-end; }
+        .message-row.user .avatar { margin-left: 12px; background: #d9ecff; color: #409eff; order: 2; }
+        .message-row.user .bubble {
+            background: #409eff;
+            color: #fff;
+            border-top-right-radius: 2px;
+            order: 1;
+        }
+
+        .avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; flex-shrink: 0; font-weight: bold;
+        }
+
+        .bubble {
+            max-width: 70%;
+            padding: 12px 18px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.6;
+            position: relative;
+            word-break: break-word;
+        }
+
+        /* 输入区域 */
+        .input-area {
+            padding: 20px;
+            background: #fff;
+            border-top: 1px solid #ebeef5;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 1px solid #dcdfe6;
+            border-radius: 20px;
+            outline: none;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .chat-input:focus { border-color: #409eff; box-shadow: 0 0 0 2px rgba(64,158,255,0.1); }
+
+        .btn-send {
+            width: 90px;
+            border: none;
+            background: #409eff;
+            color: #fff;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: 0.3s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .btn-send:hover { background: #66b1ff; }
+        .btn-clear {
+            background: #f4f4f5; color: #909399; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;
+        }
+        .btn-clear:hover { background: #e9e9eb; }
+
+        /* 加载动画 */
+        .typing { display: flex; gap: 4px; padding: 4px 0; }
+        .dot { width: 6px; height: 6px; background: #999; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+    </style>
+</head>
+<body>
+<div class="chat-container">
+    <div class="chat-header">
+        <div class="chat-title">
+            <i class="icon-android"></i>
+            <span>智能图书推荐顾问</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+            <button class="btn-clear" onclick="refreshRecs()"><i class="icon-star-full"></i> 获取我的推荐</button>
+            <button class="btn-clear" onclick="location.reload()">
+                <i class="icon-refresh"></i> 清空对话
+            </button>
+        </div>
+    </div>
+
+    <div class="chat-body" id="history">
+        <div class="message-row ai">
+            <div class="avatar"><i class="icon-android"></i></div>
+            <div class="bubble">
+                👋 您好！我是您的智能阅读顾问。<br>
+                您可以告诉我您感兴趣的主题（如：“历史”、“科幻”、“Java编程”），我会查询馆藏并为您推荐好书！
+            </div>
+        </div>
+    </div>
+
+    <div class="input-area">
+        <input type="text" class="chat-input" id="userInput" placeholder="请输入关键词，例如：推荐几本关于心理学的书..." />
+        <button class="btn-send" onclick="sendMsg()">
+            <i class="icon-paper-plane" style="margin-right: 5px;"></i> 发送
+        </button>
+    </div>
+</div>
+
+<script>
+    // 页面打开先加载缓存推荐
+    $(function(){
+        loadCachedRecs();
+    });
+
+    function loadCachedRecs(){
+        $.get('/recommend/my', function(res){
+            if(res.code === 200 && res.data && res.data.length){
+                appendRecs(res.data, '为您准备的推荐（缓存）');
+            }
+        });
+    }
+
+    function refreshRecs(){
+        appendMessage('ai', '正在为您生成个性化推荐，请稍等...');
+        $.post('/recommend/refresh', {size: 5}, function(res){
+            if(res.code === 200){
+                appendRecs(res.data || [], '为您生成的个性化推荐');
+            }else{
+                appendMessage('ai', res.msg || '生成推荐失败');
+            }
+        });
+    }
+
+    function appendRecs(list, title){
+        if(!list || list.length===0){
+            appendMessage('ai', title + '：暂无');
+            return;
+        }
+        var html = '<div style="font-weight:bold;margin-bottom:8px;">'+title+'</div>';
+        html += '<div style="display:grid;grid-template-columns:repeat(2, minmax(0,1fr));gap:10px;">';
+        $.each(list, function(_, b){
+            var cover = b.cover ? ('<img src="'+b.cover+'" style="width:42px;height:56px;object-fit:cover;border-radius:4px;"/>') : '';
+            html += '<div style="background:#fff;border:1px solid #ebeef5;border-radius:10px;padding:10px;display:flex;gap:10px;align-items:flex-start;">';
+            html += cover;
+            html += '<div style="flex:1;">';
+            html += '<div style="font-weight:600;color:#303133;">'+(b.name||'')+'</div>';
+            html += '<div style="color:#909399;font-size:12px;margin-top:4px;">'+(b.author||'')+' · '+(b.type||'')+'</div>';
+            html += '<div style="margin-top:6px;"><a href="javascript:openBook('+b.id+');" style="color:#409eff;font-size:12px;">查看详情</a></div>';
+            html += '</div></div>';
+        });
+        html += '</div>';
+        appendMessage('ai', html);
+    }
+
+    function openBook(id){
+        // 在后台 iframe 环境下打开详情页
+        try{
+            if(window.parent && window.parent.page){
+                window.parent.page('/book/detail-view');
+            }
+        }catch(e){}
+        // 详情页通过 API /book/detail?id=xx 拉数据，这里仅提示 id
+        javaex.message({content:'请在图书列表中打开详情（bookId='+id+'）', type:'success'});
+    }
+
+    function sendMsg() {
+        var input = $("#userInput");
+        var msg = input.val().trim();
+        if (!msg) return;
+
+        // 1. 用户消息
+        appendMessage('user', msg);
+        input.val('');
+
+        // 2. 加载状态
+        var loadingId = 'loading-' + Date.now();
+        var loadingHtml = '<div class="typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+        appendMessage('ai', loadingHtml, loadingId);
+
+        // 3. 发送请求
+        $.post("/ai/chat", { message: msg }, function(res) {
+            $("#" + loadingId).parent().remove(); // 移除 bubble 里的 loading 内容
+            // 实际上我们这里需要移除整个临时行，或者直接更新内容
+            // 简单起见，我们移除刚才添加的loading行，重新添加正式回复
+            $("#row-" + loadingId).remove();
+
+            if (res.code == 200) {
+                var content = res.data.replace(/\n/g, "<br>");
+                appendMessage('ai', content);
+            } else {
+                appendMessage('ai', '系统繁忙，请稍后再试。');
+            }
+        }).fail(function() {
+            $("#row-" + loadingId).remove();
+            appendMessage('ai', '网络连接失败 🚫');
+        });
+    }
+
+    function appendMessage(role, text, tempId) {
+        var rowId = tempId ? 'row-' + tempId : '';
+        var avatarIcon = role === 'user' ? '<i class="icon-user"></i>' : '<i class="icon-android"></i>';
+
+        var html = `<div class="message-row ${role}" id="${rowId}">
+                            <div class="avatar">${avatarIcon}</div>
+                            <div class="bubble" ${tempId ? 'id="'+tempId+'"' : ''}>${text}</div>
+                        </div>`;
+
+        $("#history").append(html);
+        // 滚动到底部
+        var historyDiv = document.getElementById("history");
+        historyDiv.scrollTop = historyDiv.scrollHeight;
+    }
+
+    $("#userInput").keypress(function(e) {
+        if(e.which == 13) sendMsg();
+    });
+</script>
+</body>
+</html>

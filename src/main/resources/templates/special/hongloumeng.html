@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>红楼梦专区</title>
+    <link href="../../javaex/pc/css/common.css" rel="stylesheet" />
+    <link href="../../javaex/pc/css/skin/tina.css" rel="stylesheet" />
+    <script src="../../javaex/pc/lib/jquery-1.7.2.min.js"></script>
+</head>
+<body>
+<div class="block" style="max-width: 1200px; margin: 20px auto; background:#fff; border-radius:8px; box-shadow:0 1px 2px rgba(0,0,0,0.06); padding: 24px;">
+    <h2 style="margin-bottom:16px; font-size:18px; font-weight:600; color:#333;">
+        <span style="display:inline-block;width:4px;height:18px;background:#1890ff;border-radius:2px;margin-right:8px;vertical-align:text-bottom;"></span>
+        红楼梦专区
+    </h2>
+    <div class="main" style="padding:0;">
+        <p style="color:#666; line-height:1.8; margin-bottom:16px;">本专区聚合与《红楼梦》相关的图书与讨论。</p>
+        <div style="display:flex; gap:24px; flex-wrap:wrap;">
+            <div style="flex:1; min-width: 520px;">
+                <h3 style="margin:0 0 12px 0; font-size:16px; font-weight:600; color:#333;">相关图书</h3>
+                <div id="books"></div>
+            </div>
+            <div style="width:360px; flex: 0 0 360px; min-width: 320px;">
+                <h3 style="margin:0 0 12px 0; font-size:16px; font-weight:600; color:#333;">相关讨论</h3>
+                <div id="posts"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toDetail(id){ window.location.href = '/book/detail-view?id=' + id; }
+    function toPostDetail(id){ window.location.href = '/forum/post-detail?id=' + id; }
+
+    $(document).ready(function(){
+        // 使用 topic API
+        $.get('/topic/api/hongloumeng/books', function(res){
+            if(res && res.code==200){
+                var list = res.data || [];
+                var html='';
+                for(var i=0;i<list.length;i++){
+                    var b = list[i];
+                    html += '<div style="padding:8px;border-bottom:1px solid #eee;">'
+                        + '<a href="javascript:toDetail('+b.id+')">'+(b.name||'')+'</a> — '+(b.author||'')
+                        + '<div style="color:#999;font-size:12px;margin-top:6px;">出版社:'+(b.publish||'')+' • 库存:'+(b.size||0)+'</div>'
+                        + '</div>';
+                }
+                $('#books').html(html);
+            } else {
+                // fallback: keyword search
+                $.ajax({ url: '/book/list', type: 'POST', contentType: 'application/json;charset=UTF-8', data: JSON.stringify({currPage:1,pageSize:12,keyword:'红楼梦'}), success: function(r){ if(r && r.code==200){ var l=r.data.list||[]; var html=''; for(var i=0;i<l.length;i++){ var b=l[i]; html += '<div style="padding:8px;border-bottom:1px solid #eee;">' + '<a href="javascript:toDetail('+b.id+')">'+(b.name||'')+'</a> — '+(b.author||'') + '<div style="color:#999;font-size:12px;margin-top:6px;">出版社:'+(b.publish||'')+' • 库存:'+(b.size||0)+'</div>' + '</div>'; } $('#books').html(html); } } });
+            }
+        });
+
+        // 请求相关讨论
+        $.get('/forum/api/posts', {keyword: '红楼梦'}, function(res){
+            if(res && res.code==200){
+                var html=''; var list=res.data || [];
+                for(var i=0;i<list.length;i++){ var p=list[i]; html += '<div style="padding:8px;border-bottom:1px dashed #eee;">'
+                    + '<a href="javascript:toPostDetail('+p.id+')">'+(p.title||'')+'</a>'
+                    + '<div style="color:#999;font-size:12px;margin-top:6px;">'+(p.createdAt||'')+' • 阅读 '+(p.viewCount||0)+'</div>'
+                    + '</div>'; }
+                $('#posts').html(html);
+            }
+        });
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,180 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+	<meta charset="utf-8">
+	<link href="../../javaex/pc/css/icomoon.css" rel="stylesheet" />
+	<link href="../../javaex/pc/css/animate.css" rel="stylesheet" />
+	<link href="../../javaex/pc/css/common.css" rel="stylesheet" />
+	<link href="../../javaex/pc/css/skin/tina.css" rel="stylesheet" />
+	<script src="../../javaex/pc/lib/jquery-1.7.2.min.js"></script>
+	<script src="../../javaex/pc/js/common.js"></script>
+	<script src="../../javaex/pc/js/javaex.min.js"></script>
+	<script src="../../javaex/pc/js/javaex-formVerify.js"></script>
+	<title>读者列表</title>
+	<style>
+		/* 样式美化 */
+        body { background-color: #f0f2f5; padding: 20px;}
+        .list-content { margin: 0; }
+        .block {
+            background: #fff;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+            border: none;
+            position: relative;
+        }
+        .block h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 24px;
+            padding-left: 0;
+            border-left: none;
+            display: inline-block;
+        }
+        .block h2::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 18px;
+            background: #1890ff;
+            margin-right: 8px;
+            vertical-align: text-bottom;
+            border-radius: 2px;
+        }
+
+        .admin-search { position: absolute; right: 24px; top: 20px; }
+
+        /* Table overrides */
+        .table { border: 1px solid #f0f0f0; }
+        .table thead th {
+            background-color: #fafafa;
+            color: #595959;
+            font-weight: 600;
+            border-bottom: 1px solid #f0f0f0;
+            height: 54px;
+        }
+        .table tbody td {
+            color: #666;
+            border-bottom: 1px solid #f0f0f0;
+            height: 54px;
+        }
+        .table tbody tr:hover { background-color: #fafafa; }
+
+        .action-btn { margin-right: 8px; font-size: 12px; padding: 0 8px; height: 24px; line-height: 22px; }
+	</style>
+</head>
+
+<body>
+<div class="list-content">
+	<div class="block">
+		<h2>读者列表</h2>
+
+        <div class="admin-search">
+             <div class="input-group">
+                <input id="keyword" type="text" class="text" placeholder="搜索用户名或者昵称" style="width: 250px;" />
+                <button id="searchBtn" class="button blue" onclick="search()"><span class="icon-search"></span> 搜索</button>
+            </div>
+        </div>
+
+		<div class="main" style="padding: 0; margin-top: 10px;">
+			<table id="table" class="table">
+				<thead>
+				<tr>
+					<th style="width:60px; text-align:center;">序号</th>
+					<th>昵称</th>
+					<th>用户名</th>
+					<th>生日</th>
+					<th>电话</th>
+					<th>邮箱</th>
+					<th>地址</th>
+					<th>可借数量</th>
+					<th>身份</th>
+					<th style="width: 160px; text-align:center;" >操作</th>
+				</tr>
+				</thead>
+				<tbody id="tbody">
+				</tbody>
+			</table>
+
+			<div class="page" style="text-align: right; margin-top: 24px;">
+				<ul id="page" class="pagination"></ul>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script>
+	$(document).ready(function(){
+		rander(1,"",10);
+	});
+
+	function rander(currPage,keyword,pageSize) {
+		$.ajax({
+			type : "POST",
+			contentType: "application/json;charset=UTF-8",
+			url : "/user/list",
+			data : JSON.stringify({"currPage":currPage,"keyword": keyword,"pageSize": pageSize}),
+			success : function(result) {
+				var r = result.data;
+				var total = r.total;
+				var currPage = r.currPage;
+				var pageSize = r.pageSize;
+				var array = r.list;
+				var text = "";
+				$.each(array,function(index,value){
+					var num = pageSize * (currPage - 1) + index + 1;
+					var identTag = value.ident == "管理员" ? "<span style='color:#ff4d4f; font-weight:bold;'>管理员</span>" : "<span style='color:#52c41a; background:#f6ffed; padding: 2px 8px; border:1px solid #b7eb8f; border-radius:4px;'>读者</span>";
+
+					text+= "<tr><td style='text-align:center;'>"+num+"</td><td><b style='color:#333;'>"+value.nickname+"</b></td><td>"+value.username+"</td><td>"+value.birth+"</td>" +
+							"<td>"+value.tel+"</td><td>"+value.email+"</td><td>"+value.address+"</td><td><span class='badge'>"+value.size+"</span></td>" +
+							"<td>"+identTag+"</td><td style='text-align:center;'>"+
+							"<button class='button blue empty action-btn' onclick='updateBook("+value.id+")'>编辑</button> <button class='button red empty action-btn' onclick='delBook("+value.id+")'>删除</button></td></tr>";
+				});
+				$("#tbody").html(text);
+				var totalPage = Math.ceil(total/pageSize);
+				$("#page").empty();
+				javaex.page({
+					id : "page",
+					pageCount : totalPage,
+					currentPage : currPage,
+					perPageCount : pageSize ,
+					isShowJumpPage : false,
+					totalNum : total,
+					position : "right",
+					callback : function(rtn) {
+						rander(rtn.pageNum,keyword,rtn.perPageCount);
+					}
+				});
+			},
+			error : function(e){
+				console.log(e.status);
+			}
+		});
+	}
+
+	function search() {
+		var keyword = $("#keyword").val();
+		rander(1,keyword,10);
+	}
+	function updateBook(id) {
+		window.location.href="/reader/reader-update?id="+id;
+	}
+	function delBook(id) {
+		javaex.confirm({
+			content : "确定要删除该用户吗？",
+			callback : "delCallback("+id+")"
+		});
+	}
+	function delCallback(id) {
+		$.get("/user/delete",{"id": id},
+				function(data){
+					if (data.code == 200) {
+						javaex.message({ content : "删除成功", type : "success" });
+						setTimeout(function(){window.location.reload();},1000)
+					}
+				});
+	}
+</script>
+</body>
+</html>

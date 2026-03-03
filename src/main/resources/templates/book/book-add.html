@@ -1,0 +1,331 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+	<meta charset="utf-8">
+	<link href="../../javaex/pc/css/icomoon.css" rel="stylesheet" />
+	<link href="../../javaex/pc/css/animate.css" rel="stylesheet" />
+	<link href="../../javaex/pc/css/common.css" rel="stylesheet" />
+	<link href="../../javaex/pc/css/skin/tina.css" rel="stylesheet" />
+	<script src="../../javaex/pc/lib/jquery-1.7.2.min.js"></script>
+	<script src="../../javaex/pc/js/common.js"></script>
+	<script src="../../javaex/pc/js/javaex.min.js"></script>
+	<script src="../../javaex/pc/js/javaex-formVerify.js"></script>
+	<title>图书上架</title>
+	<style>
+		body { background-color: #f0f2f5; padding: 20px;}
+		.block {
+			background: #fff;
+			width: 100%;
+			margin: 0;
+			padding: 40px 60px;
+			border-radius: 8px;
+			box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+		}
+		.banner {
+			border-bottom: 1px solid #f0f0f0;
+			margin-bottom: 30px;
+			padding-bottom: 16px;
+		}
+		.banner .tab.fixed {
+			font-size: 20px;
+			font-weight: 600;
+			color: #333;
+			border-left: none;
+			padding-left: 0;
+            display: inline-block;
+		}
+        .banner .tab.fixed::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 20px;
+            background: #1890ff;
+            margin-right: 12px;
+            vertical-align: text-bottom;
+            border-radius: 2px;
+        }
+
+		.unit { margin: 24px 0; }
+		.unit .left { width: 100px !important; text-align: right; font-weight: 500; color: #333; line-height: 36px;}
+		.unit .right { width: 600px; }
+
+		.file-btn {
+			position: relative;
+			display: inline-block;
+			background: #fff;
+			border: 1px solid #d9d9d9;
+			border-radius: 4px;
+			padding: 6px 15px;
+			overflow: hidden;
+			color: #666;
+			text-decoration: none;
+			text-indent: 0;
+			line-height: 20px;
+			cursor: pointer;
+            transition: all 0.3s;
+		}
+		.file-btn input {
+			position: absolute;
+			font-size: 100px;
+			right: 0;
+			top: 0;
+			opacity: 0;
+			cursor: pointer;
+		}
+		.file-btn:hover {
+			border-color: #40a9ff;
+			color: #40a9ff;
+		}
+
+        .action-row {
+            margin-top: 40px;
+            margin-left: 120px;
+            text-align: left;
+        }
+        .action-row .button {
+            width: 120px;
+            margin-right: 20px;
+        }
+	</style>
+</head>
+
+<body>
+<div class="list-content">
+	<div class="block">
+		<div class="banner">
+			<p class="tab fixed">图书上架</p>
+		</div>
+
+		<div class="main" style="padding:0;">
+			<form id="form">
+				<div class="unit clear">
+					<div class="left"><span class="required">*</span><p class="subtitle">书名</p></div>
+					<div class="right">
+						<input type="text" id="bookName" class="text" placeholder="请输入图书名称" />
+					</div>
+				</div>
+
+				<div class="unit clear">
+					<div class="left"><span class="required">*</span><p class="subtitle">ISBN</p></div>
+					<div class="right">
+						<input type="text" id="isbn" class="text" placeholder="ISBN编号" />
+					</div>
+				</div>
+
+				<div class="unit clear">
+					<div class="left"><span class="required">*</span><p class="subtitle">作者</p></div>
+					<div class="right">
+						<input type="text" id="author" class="text" placeholder="作者" />
+					</div>
+				</div>
+
+				<div class="unit clear">
+					<div class="left"><p class="subtitle">封面</p></div>
+					<div class="right">
+						<a href="javascript:;" class="file-btn">
+                            <span class="icon-camera"></span> 选择图片
+							<input type="file" id="uploadCover" accept="image/*" onchange="uploadImage(this)" />
+						</a>
+						<input type="hidden" id="cover" />
+						<div id="coverPreview" style="margin-top: 10px; display: none;">
+							<img src="" width="100" height="140" style="object-fit: cover; border: 1px solid #d9d9d9; border-radius: 4px; padding: 4px;" />
+						</div>
+					</div>
+				</div>
+
+				<div class="unit clear">
+					<div class="left"><span class="required">*</span><p class="subtitle">分类</p></div>
+					<div class="right">
+						<select id="select">
+							<option value="">请选择</option>
+							<!-- options will be loaded dynamically -->
+						</select>
+					</div>
+				</div>
+
+				<div class="unit clear">
+					<div class="left"><p class="subtitle">页数</p></div>
+					<div class="right">
+						<input type="text" id="pages" class="text" placeholder="图书页数" />
+					</div>
+				</div>
+
+				<div class="unit clear">
+					<div class="left"><p class="subtitle">定价</p></div>
+					<div class="right">
+						<input type="text" id="price" class="text" placeholder="定价" />
+					</div>
+				</div>
+
+				<div class="unit clear">
+					<div class="left"><p class="subtitle">出版时间</p></div>
+					<div class="right">
+						<input type="text" id="publishTime" class="ex-date" style="width: 100%; border:1px solid #dcdfe6; border-radius:4px;" value="" readonly/>
+					</div>
+				</div>
+
+				<div class="unit clear">
+					<div class="left"><p class="subtitle">出版社</p></div>
+					<div class="right">
+						<input type="text" id="publish" class="text" placeholder="出版社" />
+					</div>
+				</div>
+
+				<div class="unit clear">
+					<div class="left"><p class="subtitle">库存</p></div>
+					<div class="right">
+						<input type="text" id="count" class="text" placeholder="库存数量" />
+					</div>
+				</div>
+
+				<div class="unit clear">
+					<div class="left"><p class="subtitle">翻译</p></div>
+					<div class="right">
+						<input type="text" id="translate" class="text" placeholder="翻译" />
+					</div>
+				</div>
+
+				<div class="unit clear">
+					<div class="left"><p class="subtitle">简介</p></div>
+					<div class="right">
+						<textarea id="introduction" class="desc" style="width: 100%; height: 120px; padding: 12px; border: 1px solid #d9d9d9; border-radius: 4px;" placeholder="请输入图书简介..."></textarea>
+					</div>
+				</div>
+
+				<div class="action-row">
+					<input type="button" id="return" class="button no" value="返回" />
+					<input type="button" id="save" class="button yes" value="保存" />
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
+<script type="text/javascript">
+	javaex.select({
+		id : "select",
+		isSearch : true,
+		maxNum: 5
+	});
+
+	javaex.date({
+		id : "publishTime",
+		isTime : true,
+		date : "2023-01-01 00:00:00",
+		callback : function(rtn) {}
+	});
+
+	// load categories from backend
+	function loadCategories(){
+		$.get('/category/list', function(res){
+			if(res && res.code==200 && res.data){
+				var list = res.data;
+				var $sel = $('#select');
+				$sel.empty();
+				$sel.append('<option value="">请选择</option>');
+				for(var i=0;i<list.length;i++){
+					var it = list[i];
+					$sel.append('<option value="'+ (it.name || '') +'">'+ (it.name || '') +'</option>');
+				}
+			}
+		});
+	}
+
+	// 图片上传处理
+	function uploadImage(obj) {
+		var file = obj.files[0];
+		if (!file) return;
+
+		var formData = new FormData();
+		formData.append("file", file);
+
+		// 显示上传中提示（可选）
+		javaex.optTip({ content : "上传中...", type : "submit" });
+
+		$.ajax({
+			url: "/book/upload",
+			type: "POST",
+			data: formData,
+			processData: false,
+			contentType: false,
+			success: function(res) {
+				if (res.code == 200) {
+					var imgUrl = res.data;
+					$("#cover").val(imgUrl);
+					$("#coverPreview img").attr("src", imgUrl);
+					$("#coverPreview").show();
+					javaex.optTip({ content: "封面上传成功", type: "success" });
+				} else {
+					javaex.optTip({ content: "上传失败", type: "error" });
+				}
+			},
+			error: function() {
+				javaex.optTip({ content: "网络错误", type: "error" });
+			}
+		});
+	}
+
+	// 监听保存按钮
+	$(document).ready(function(){
+		loadCategories();
+
+		$("#save").click(function() {
+			var bookName = $("#bookName").val();
+			var isbn = $("#isbn").val();
+			var author = $("#author").val();
+			var select = $('#select option:selected').text();
+			var pages = $("#pages").val();
+			var price = $("#price").val();
+			var publishTime = $("#publishTime").val();
+			var publish = $("#publish").val();
+			var count = $("#count").val();
+			var translate = $("#translate").val();
+			var cover = $("#cover").val();          // 获取封面
+			var introduction = $("#introduction").val(); // 获取简介
+
+			if (bookName == "") { javaex.optTip({ content : "图书名称不能为空!", type : "error" }); return false; }
+			if (isbn == "") { javaex.optTip({ content : "ISBN不能为空!", type : "error" }); return false; }
+			if (author == "") { javaex.optTip({ content : "作者不能为空!", type : "error" }); return false; }
+			if (select == "" || select == "请选择") { javaex.optTip({ content : "请选择分类!", type : "error" }); return false; }
+
+			var json = {
+				"isbn": isbn,
+				"name": bookName,
+				"author": author,
+				"pages": pages,
+				"translate": translate,
+				"publish": publish,
+				"price": price,
+				"size": count,
+				"type": select,
+				"publishTime": publishTime,
+				"cover": cover,           // 提交封面
+				"introduction": introduction // 提交简介
+			};
+
+			$.ajax({
+				type : "POST",
+				contentType: "application/json;charset=UTF-8",
+				url : "/book/add",
+				data : JSON.stringify(json),
+				success : function(result) {
+					if (result.code == 200) {
+						javaex.message({ content : "添加成功", type : "success" });
+						setTimeout(function(){ window.location.href="/book/book-list"; }, 1500);
+					} else {
+						javaex.message({ content : result.msg || "添加失败", type : "error" });
+					}
+				},
+				error : function(e){
+					console.log(e.status);
+				}
+			});
+		});
+
+		$("#return").click(function() {
+			window.location.href = "/book/book-list";
+		});
+	});
+</script>
+</body>
+</html>
