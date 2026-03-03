@@ -99,9 +99,4 @@ java -Drag.index-on-startup=true -jar target/manager-integrated-1.0.0-SNAPSHOT.j
 
 ---
 
-如果你希望，我可以：
-- 把 README 翻成英文版；
-- 帮你把 `InMemoryEmbeddingStore` 改成一个简单的持久化实现（例如持久化到文件或 SQLite 的原型），并提供配置切换；
-- 为 RAG 相关逻辑添加单元测试或集成测试示例。
 
-请告诉我你想要的下一步。
