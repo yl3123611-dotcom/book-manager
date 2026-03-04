@@ -35,6 +35,9 @@ public class BookService {
     @Autowired
     private LibraryMapper libraryMapper;
 
+    @Autowired
+    private CategoryService categoryService;
+
 
     /**
      * 添加用户
@@ -42,6 +45,9 @@ public class BookService {
      * @return 返回添加的图书
      */
     public Book addBook(Book book) {
+        if (book != null) {
+            categoryService.ensureExists(book.getType());
+        }
         return bookRepository.saveAndFlush(book);
     }
 
@@ -51,6 +57,9 @@ public class BookService {
      * @return true or false
      */
     public boolean updateBook(Book book) {
+        if (book != null) {
+            categoryService.ensureExists(book.getType());
+        }
         return bookMapper.updateBook(BeanUtil.beanToMap(book))>0;
     }
 
@@ -67,12 +76,14 @@ public class BookService {
             BeanUtil.copyProperties(book,out);
             out.setPublishTime(DateUtil.format(book.getPublishTime(),"yyyy-MM-dd"));
 
-            // ✅ 追加馆藏位置信息（可能为空）
-            try {
-                Map<String, Object> loc = libraryMapper.findBookLocation(id);
-                out.setLocation(loc);
-            } catch (Exception ignore) {
-                // location 不应影响基本详情
+            // locationText is the primary field filled by admin; keep old map as fallback compatibility.
+            if (book.getLocationText() == null || book.getLocationText().isBlank()) {
+                try {
+                    Map<String, Object> loc = libraryMapper.findBookLocation(id);
+                    out.setLocation(loc);
+                } catch (Exception ignore) {
+                    // location 不应影响基本详情
+                }
             }
 
             return out;
@@ -102,11 +113,12 @@ public class BookService {
         BeanUtil.copyProperties(book,out);
         out.setPublishTime(DateUtil.format(book.getPublishTime(),"yyyy-MM-dd"));
 
-        // ✅ 追加馆藏位置信息（可能为空）
-        try {
-            Map<String, Object> loc = libraryMapper.findBookLocation(book.getId());
-            out.setLocation(loc);
-        } catch (Exception ignore) {
+        if (book.getLocationText() == null || book.getLocationText().isBlank()) {
+            try {
+                Map<String, Object> loc = libraryMapper.findBookLocation(book.getId());
+                out.setLocation(loc);
+            } catch (Exception ignore) {
+            }
         }
 
         return out;

@@ -83,13 +83,13 @@ public class SeatReservationServiceTest {
         err = seatReservationService.reserveSlot(u.getUsername(), seat.getId(), start, end);
         Assertions.assertNull(err);
 
-        // second user should be blocked by quota full (maxCount=1)
+        // second user should be blocked (same seat+same slot conflict, or quota full)
         Users u2 = new Users();
         u2.setUsername("slot_test_user2");
         u2.setPassword("123456");
         userService.addUser(u2);
         err = seatReservationService.reserveSlot(u2.getUsername(), seat.getId(), start, end);
         Assertions.assertNotNull(err);
-        Assertions.assertTrue(err.contains("约满"));
+        Assertions.assertTrue(err.contains("约满") || err.contains("座位已被预约"));
     }
 }

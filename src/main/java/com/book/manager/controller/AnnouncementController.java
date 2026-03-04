@@ -63,48 +63,44 @@ public class AnnouncementController {
     @ResponseBody
     public R adminPage(@RequestParam(defaultValue = "1") Integer page,
                        @RequestParam(defaultValue = "10") Integer size) {
-        Map<String, Object> data = announcementService.page(page == null ? 1 : page, size == null ? 10 : size);
-        return R.success(CodeEnum.SUCCESS, data);
+        try {
+            Map<String, Object> data = announcementService.page(page == null ? 1 : page, size == null ? 10 : size);
+            return R.success(CodeEnum.SUCCESS, data);
+        } catch (Exception e) {
+            return R.failMsg("分页加载失败：" + e.getMessage());
+        }
     }
 
     @Operation(summary = "公告详情(后台)")
     @GetMapping("/admin/detail")
     @ResponseBody
     public R adminDetail(@RequestParam Integer id) {
-        return R.success(CodeEnum.SUCCESS, announcementService.detail(id));
+        try {
+            return R.success(CodeEnum.SUCCESS, announcementService.detail(id));
+        } catch (Exception e) {
+            return R.failMsg("读取详情失败：" + e.getMessage());
+        }
     }
 
     @Operation(summary = "公告保存(新增/编辑)")
     @PostMapping("/admin/save")
     @ResponseBody
     public R adminSave(@RequestBody Announcement a) {
-        Users u = currentUser();
-        Integer uid = (u == null) ? null : u.getId();
-        int n = announcementService.save(a, uid);
-        return n > 0 ? R.success(CodeEnum.SUCCESS, a) : R.fail(CodeEnum.FAIL);
+        try {
+            Users u = currentUser();
+            Integer uid = (u == null) ? null : u.getId();
+            int n = announcementService.save(a, uid);
+            return n > 0 ? R.success(CodeEnum.SUCCESS, a) : R.fail(CodeEnum.FAIL);
+        } catch (Exception e) {
+            return R.failMsg("保存失败：" + e.getMessage());
+        }
     }
 
     @Operation(summary = "公告删除")
     @RequestMapping(value = "/admin/delete", method = {RequestMethod.GET, RequestMethod.POST})
     @ResponseBody
-    public R adminDelete(@RequestParam(required = false) Integer id,
-                         @RequestBody(required = false) Map<String, Object> body) {
+    public R adminDelete(@RequestParam Integer id) {
         try {
-            // support id from query/form or JSON body
-            if (id == null && body != null) {
-                Object idObj = body.get("id");
-                if (idObj instanceof Number) {
-                    id = ((Number) idObj).intValue();
-                } else if (idObj instanceof String) {
-                    try {
-                        id = Integer.valueOf((String) idObj);
-                    } catch (NumberFormatException ignored) {
-                    }
-                }
-            }
-            if (id == null) {
-                return R.paramError("缺少id参数");
-            }
             int n = announcementService.delete(id);
             if (n > 0) {
                 return R.success(CodeEnum.SUCCESS);

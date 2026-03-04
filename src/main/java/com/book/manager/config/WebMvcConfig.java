@@ -27,5 +27,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
         // 实际查找: file:D:/biyesheji/upload/xxx.jpg
         registry.addResourceHandler("/upload/**")
                 .addResourceLocations("file:" + path);
+
+        // Backward-compatible alias for historical cover paths stored as /images/upload/**
+        registry.addResourceHandler("/images/upload/**")
+                .addResourceLocations("file:" + path);
     }
 }

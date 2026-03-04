@@ -104,12 +104,60 @@
             height: 18px;
             display: inline-block;
         }
+		.nav-search-wrap { float: right; margin-right: 18px; position: relative; }
+		.nav-search-input { width: 300px; height: 34px; margin-top: 15px; border-radius: 17px; border: 1px solid rgba(255,255,255,0.35); padding: 0 38px 0 14px; background: rgba(255,255,255,0.12); color: #fff; outline: none; }
+		.nav-search-input::placeholder { color: rgba(255,255,255,0.7); }
+		.nav-search-icon { position: absolute; right: 14px; top: 24px; color: #fff; cursor: pointer; }
+		.nav-search-panel { position: absolute; top: 56px; right: 0; width: 640px; background: #fff; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); padding: 12px; display: none; z-index: 1100; }
+		.nav-search-panel.open { display: block; }
+		.panel-grid { display:flex; align-items:stretch; min-height: 220px; }
+		.panel-col-left { width: 42%; padding-right: 12px; border-right: 1px solid #f0f0f0; }
+		.panel-col-right { width: 58%; padding-left: 12px; }
+		.panel-title-row { display:flex; align-items:center; justify-content:space-between; margin: 4px 0 8px 0; }
+		.panel-title { font-size: 13px; color: #666; }
+		.panel-link { font-size: 12px; color: #409eff; cursor:pointer; }
+		.panel-tags { display:flex; flex-wrap:wrap; gap:8px; }
+		.panel-tag { background:#f2f6fc; color:#409eff; border-radius:12px; padding:3px 9px; font-size:12px; cursor:pointer; }
+		.panel-section { margin-bottom: 14px; }
+		.panel-rec-item { font-size:12px; color:#333; padding:4px 0; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+		.panel-empty { font-size:12px; color:#999; line-height: 1.8; }
+		.panel-scroll { max-height: 168px; overflow: auto; }
+		.panel-right-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+		.panel-subcol { min-width: 0; }
 	</style>
 </head>
 <body>
 <div class="admin-navbar">
 	<div class="admin-container-fluid clear">
 		<div class="admin-logo">图书管理系统</div>
+
+		<div class="nav-search-wrap" id="navSearchWrap">
+			<input id="topSearchInput" class="nav-search-input" placeholder="搜索书名 / 作者 / 分类，回车搜索" />
+			<span class="icon-search nav-search-icon" onclick="runTopSearch()"></span>
+			<div class="nav-search-panel" id="topSearchPanel">
+				<div class="panel-grid">
+					<div class="panel-col-left">
+						<div class="panel-title-row">
+							<div class="panel-title">历史记录</div>
+							<div class="panel-link" onclick="clearSearchHistory()">清空</div>
+						</div>
+						<div class="panel-tags panel-scroll" id="searchHistoryTags"></div>
+					</div>
+					<div class="panel-col-right">
+						<div class="panel-right-grid">
+							<div class="panel-subcol">
+								<div class="panel-title" style="margin:4px 0 8px 0;">热门搜索</div>
+								<div class="panel-tags panel-scroll" id="topHotTags"></div>
+							</div>
+							<div class="panel-subcol">
+								<div class="panel-title" style="margin:4px 0 8px 0;">推荐图书</div>
+								<div id="topRecommendList" class="panel-scroll"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
 
 		<ul class="admin-navbar-nav fr">
 			<li>
@@ -145,7 +193,6 @@
 							<a href="javascript:;">图书管理<i class="icon-keyboard_arrow_left"></i></a>
 							<ul>
 								<li><a id="book-list" href="javascript:page('book/book-list');">图书列表</a></li>
-								<li><a href="javascript:page('book/book-search');">图书搜索（热门/推荐）</a></li>
 								<li><a id="add-book" href="javascript:page('book/book-add');">图书上架</a></li>
 								<li>
 									<a href="javascript:page('/recommend.html');" style="color: #ff9800;">
@@ -159,7 +206,7 @@
 						<li class="menu-item">
 							<a href="javascript:;">借阅管理<i class="icon-keyboard_arrow_left"></i></a>
 							<ul>
-								<li><a id="book-search" href="javascript:page('borrow/book-search');">搜索图书</a></li>
+								<li><a id="book-search" href="javascript:page('book/book-search');">搜索图书</a></li>
 								<li><a id="book-borrow" href="javascript:page('borrow/borrow');">借阅图书</a></li>
 								<li><a id="book-back" href="javascript:page('borrow/back');">归还图书</a></li>
 							</ul>
@@ -225,7 +272,7 @@
 							</ul>
 						</li>
 
-						<li class="menu-item">
+						<li class="menu-item" id="announcement-manage">
 							<a href="javascript:;">公告管理<i class="icon-keyboard_arrow_left"></i></a>
 							<ul>
 								<li><a href="javascript:page('announcement/list');">公告列表</a></li>
@@ -298,6 +345,7 @@
 					$("#nav-admin-manage").hide();   // 馆藏管理
 					$("#special-admin-manage").hide(); // 专题管理
 					$("#announcement-admin-manage").hide(); // 公告发布/管理
+					$("#announcement-manage").hide(); // 公告管理（整块隐藏）
 				}
 			}
 			return false;
@@ -314,6 +362,131 @@
 				}
 			}
 		});
+	});
+
+	var SEARCH_HISTORY_KEY = 'bm_search_history';
+
+	function readSearchHistory(){
+		try {
+			var arr = JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) || '[]');
+			if(Object.prototype.toString.call(arr) !== '[object Array]') return [];
+			return arr;
+		} catch(e){
+			return [];
+		}
+	}
+
+	function writeSearchHistory(list){
+		localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(list || []));
+	}
+
+	function addSearchHistory(keyword){
+		var k = String(keyword || '').trim();
+		if(!k) return;
+		var arr = readSearchHistory().filter(function(x){ return x !== k; });
+		arr.unshift(k);
+		if(arr.length > 10) arr = arr.slice(0,10);
+		writeSearchHistory(arr);
+	}
+
+	function renderTopHistory(){
+		var arr = readSearchHistory();
+		var $box = $('#searchHistoryTags');
+		$box.empty();
+		if(arr.length === 0){
+			$box.html('<div class="panel-empty">暂无搜索历史</div>');
+			return;
+		}
+		for(var i=0;i<arr.length;i++){
+			$box.append('<span class="panel-tag" onclick="runTopSearch(\'' + arr[i].replace(/'/g, "\\'") + '\')">'+ arr[i] +'</span>');
+		}
+	}
+
+	function clearSearchHistory(){
+		writeSearchHistory([]);
+		renderTopHistory();
+	}
+
+	function loadTopHot(){
+		$.get('/search/hot?size=8', function(res){
+			var $box = $('#topHotTags');
+			$box.empty();
+			if(!(res && res.code==200)){
+				$box.html('<div class="panel-empty">暂无热门搜索</div>');
+				return;
+			}
+			var list = res.data || [];
+			if(list.length === 0){
+				$box.html('<div class="panel-empty">暂无热门搜索</div>');
+				return;
+			}
+			for(var i=0;i<list.length;i++){
+				var k = String(list[i] || '');
+				$box.append('<span class="panel-tag" onclick="runTopSearch(\'' + k.replace(/'/g, "\\'") + '\')">'+ k +'</span>');
+			}
+		});
+	}
+
+	function loadTopRecommends(){
+		$.get('/home/recommends?size=6', function(res){
+			var $box = $('#topRecommendList');
+			$box.empty();
+			if(!(res && res.code==200)){
+				$box.html('<div class="panel-empty">暂无推荐图书</div>');
+				return;
+			}
+			var list = res.data || [];
+			if(list.length === 0){
+				$box.html('<div class="panel-empty">暂无推荐图书</div>');
+				return;
+			}
+			for(var i=0;i<list.length;i++){
+				var b = list[i] || {};
+				$box.append('<div class="panel-rec-item" title="'+ (b.name || '未命名') +'" onclick="page(\'book/detail-view?id='+ b.id +'\'); hideTopSearchPanel();">'+ (b.name || '未命名') +'</div>');
+			}
+		});
+	}
+
+	function showTopSearchPanel(){
+		renderTopHistory();
+		loadTopHot();
+		loadTopRecommends();
+		$('#topSearchPanel').addClass('open');
+	}
+
+	function hideTopSearchPanel(){
+		$('#topSearchPanel').removeClass('open');
+	}
+
+	function runTopSearch(kw){
+		var keyword = (kw != null ? kw : $('#topSearchInput').val()) || '';
+		keyword = String(keyword).trim();
+		if(!keyword) return;
+		$('#topSearchInput').val(keyword);
+		addSearchHistory(keyword);
+		hideTopSearchPanel();
+		page('book/book-search?keyword=' + encodeURIComponent(keyword));
+	}
+
+	window.runTopSearch = runTopSearch;
+	window.hideTopSearchPanel = hideTopSearchPanel;
+	window.clearSearchHistory = clearSearchHistory;
+
+	$(document).ready(function(){
+		// ...existing code...
+		$('#topSearchInput').on('focus click', function(e){
+			showTopSearchPanel();
+			e.stopPropagation();
+		}).on('keydown', function(e){
+			if(e.keyCode === 13){
+				runTopSearch();
+			}
+			if(e.keyCode === 27){
+				hideTopSearchPanel();
+			}
+		});
+		$('#topSearchPanel').on('click', function(e){ e.stopPropagation(); });
+		$(document).on('click', function(){ hideTopSearchPanel(); });
 	});
 </script>
 </html>

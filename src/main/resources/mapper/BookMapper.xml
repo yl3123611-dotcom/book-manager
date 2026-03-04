@@ -16,6 +16,7 @@
         <result column="publish_time" property="publishTime" jdbcType="TIMESTAMP"/>
         <result column="cover" property="cover" jdbcType="VARCHAR"/>
         <result column="introduction" property="introduction" jdbcType="VARCHAR"/>
+        <result column="location_text" property="locationText" jdbcType="VARCHAR"/>
     </resultMap>
 
     <select id="findBookListByLike" resultMap="BaseResultMap">
@@ -78,13 +79,16 @@
             <if test="introduction != null and introduction != ''">
                 introduction = #{introduction},
             </if>
+            <if test="locationText != null and locationText != ''">
+                location_text = #{locationText},
+            </if>
         </set>
         where id = #{id}
     </update>
 
     <insert id="addBook" parameterType="com.book.manager.entity.Book">
-        insert into book (isbn, name, author, pages, translate, publish, price, size, type, publish_time, cover, introduction)
-        values (#{isbn}, #{name}, #{author}, #{pages}, #{translate}, #{publish}, #{price}, #{size}, #{type}, #{publishTime}, #{cover}, #{introduction})
+        insert into book (isbn, name, author, pages, translate, publish, price, size, type, publish_time, cover, introduction, location_text)
+        values (#{isbn}, #{name}, #{author}, #{pages}, #{translate}, #{publish}, #{price}, #{size}, #{type}, #{publishTime}, #{cover}, #{introduction}, #{locationText})
     </insert>
 
     <select id="selectByKeyword" resultMap="BaseResultMap">
@@ -109,5 +113,10 @@
             #{id}
         </foreach>
     </select>
-
+    <select id="countByType" resultType="map">
+        SELECT IFNULL(NULLIF(TRIM(type), ''), '未分类') AS type, COUNT(1) AS cnt
+        FROM book
+        GROUP BY IFNULL(NULLIF(TRIM(type), ''), '未分类')
+        ORDER BY cnt DESC
+    </select>
 </mapper>

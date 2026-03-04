@@ -22,5 +22,12 @@
         DELETE FROM category WHERE id = #{id}
     </delete>
 
-</mapper>
+    <select id="findByName" resultType="map">
+        SELECT id, name, sort, enabled FROM category WHERE name = #{name} LIMIT 1
+    </select>
 
+    <insert id="insertIgnore">
+        INSERT IGNORE INTO category(name, sort, enabled) VALUES(#{name}, #{sort}, 1)
+    </insert>
+
+</mapper>

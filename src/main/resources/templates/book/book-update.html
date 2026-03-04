@@ -40,9 +40,6 @@
 		opacity: 0;
 		cursor: pointer;
 	}
-	.location-box{margin-top:10px;color:#606266}
-	.location-box .label{display:inline-block;width:80px;color:#333}
-	.location-box .val{display:inline-block}
 </style>
 
 <body>
@@ -107,8 +104,8 @@
 						<span id="type" style="color: #2db7f5"></span>
 						<select id="select">
 							<option value="" id="opt">请选择</option>
-							<!-- options loaded dynamically -->
 						</select>
+						<input type="text" id="customType" class="text" style="margin-top:8px;" placeholder="可自定义分类（选填，优先使用）" />
 					</div>
 				</div>
 
@@ -154,19 +151,11 @@
 					</div>
 				</div>
 
-				<!-- 新增：馆藏位置显示与管理员绑定 -->
+
 				<div class="unit clear">
-					<div class="left"><p class="subtitle">馆藏位置</p></div>
+					<div class="left"><p class="subtitle">书籍位置</p></div>
 					<div class="right">
-						<div id="locationDisplay" class="location-box">
-							<span class="label">楼层：</span><span class="val" id="locFloor">-</span>
-							<span class="label">书架：</span><span class="val" id="locShelf">-</span>
-							<span class="label">格位：</span><span class="val" id="locCell">-</span>
-						</div>
-						<div style="margin-top:8px;">
-							<button type="button" id="btnBind" class="button yes">绑定位置（管理员）</button>
-							<span style="margin-left:8px;color:#909399;font-size:12px;">请在馆藏管理中获取 floorId/shelfId/cellId 后调用</span>
-						</div>
+						<input type="text" id="locationText" class="text" placeholder="例如：二楼A区-3号书架-第2层" />
 					</div>
 				</div>
 
@@ -244,13 +233,7 @@
 				$("#coverPreview img").attr("src", data.cover);
 			}
 
-			// 回显位置
-			if(data.location){
-				var loc = data.location;
-				$("#locFloor").text(loc.floorName || '-');
-				$("#locShelf").text((loc.shelfCode || loc.shelfName) || '-');
-				$("#locCell").text((loc.layerNo?('第'+loc.layerNo+'层/'):'') + (loc.cellNo?('第'+loc.cellNo+'格'):'-'));
-			}
+			$('#locationText').val(data.locationText || '');
 		});
 	});
 
@@ -286,10 +269,13 @@
 		var bookName = $("#bookName").val();
 		var isbn = $("#isbn").val();
 		var author = $("#author").val();
-		var select = $('#select option:selected').text();
-		if (select == "" || select == "请选择") {
-			select = $("#type").text();
+		var select = ($('#select').val() || '').trim();
+		if (!select) {
+			select = ($('#type').text() || '').trim();
 		}
+		var customType = ($('#customType').val() || '').trim();
+		var finalType = customType || select;
+		var locationText = ($('#locationText').val() || '').trim();
 		var pages = $("#pages").val();
 		var price = $("#price").val();
 		var publishTime = $("#publishTime").val();
@@ -313,7 +299,7 @@
 			javaex.optTip({ content : "图书作者不能为空!", type : "error" });
 			return false;
 		}
-		if (select == "") {
+		if (finalType == "") {
 			javaex.optTip({ content : "图书分类不能为空!", type : "error" });
 			return false;
 		}
@@ -331,9 +317,10 @@
 			"publish": publish,
 			"price": price,
 			"size": size,
-			"type": select,
+			"type": finalType,
 			"publishTime": publishTime,
-			"cover": cover
+			"cover": cover,
+			"locationText": locationText
 		};
 
 		$.ajax({
@@ -368,48 +355,31 @@
 
 	// load categories into select
 	function loadCategories(){
-		$.get('/category/list', function(res){
+		$.get('/category/list/options', function(res){
 			if(res && res.code==200 && res.data){
-				var list = res.data;
+				var defaults = res.data.defaultList || [];
+				var customs = res.data.customList || [];
+				var seen = {};
 				var $sel = $('#select');
 				$sel.empty();
 				$sel.append('<option value="">请选择</option>');
-				for(var i=0;i<list.length;i++){
-					var it = list[i];
-					$sel.append('<option value="'+ (it.name || '') +'">'+ (it.name || '') +'</option>');
+				for(var i=0;i<defaults.length;i++){
+					var n = String(defaults[i] || '').trim();
+					if(!n || seen[n]) continue;
+					seen[n] = true;
+					$sel.append('<option value="'+ n +'">'+ n +'</option>');
+				}
+				for(var j=0;j<customs.length;j++){
+					var it = customs[j] || {};
+					var cn = String(it.name || '').trim();
+					if(!cn || seen[cn]) continue;
+					seen[cn] = true;
+					$sel.append('<option value="'+ cn +'">'+ cn +'</option>');
 				}
 			}
 		});
 	}
 
-	// 绑定馆藏位置（需要 admin 权限）
-	$('#btnBind').click(function(){
-		var id = getQueryVariable('id');
-		// For simplicity we ask admin to input values via prompt; a full UI would be in /nav/admin/manage
-		var floorId = prompt('输入 floorId');
-		var shelfId = prompt('输入 shelfId');
-		var cellId = prompt('输入 cellId');
-		if(!floorId || !shelfId || !cellId){
-			javaex.message({content:'缺少位置参数', type:'error'});
-			return;
-		}
-		$.post('/nav/admin/bind', {bookId: id, floorId: floorId, shelfId: shelfId, cellId: cellId}, function(res){
-			if(res && res.code==200){
-				javaex.message({content:'绑定成功', type:'success'});
-				// reload location display
-				$.get('/nav/book-location', {bookId: id}, function(r2){
-					if(r2 && r2.code==200){
-						var loc = r2.data || {};
-						$('#locFloor').text(loc.floorName || '-');
-						$('#locShelf').text((loc.shelfCode || loc.shelfName) || '-');
-						$('#locCell').text((loc.layerNo?('第'+loc.layerNo+'层/'):'') + (loc.cellNo?('第'+loc.cellNo+'格'):'-'));
-					}
-				});
-			} else {
-				javaex.message({content:(res && res.msg) ? res.msg : '绑定失败', type:'error'});
-			}
-		});
-	});
 
 </script>
 </body>

@@ -27,4 +27,9 @@ public class HotSearchService {
         int s = (size == null || size <= 0) ? 10 : Math.min(size, 50);
         return hotSearchMapper.listTop(s);
     }
+
+    public List<java.util.Map<String, Object>> listTopWithCount(Integer size) {
+        int s = (size == null || size <= 0) ? 10 : Math.min(size, 50);
+        return hotSearchMapper.listTopWithCount(s);
+    }
 }

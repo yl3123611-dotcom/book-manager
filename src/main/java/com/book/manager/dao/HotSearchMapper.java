@@ -12,4 +12,7 @@ public interface HotSearchMapper {
 
     @Select("SELECT keyword FROM hot_search ORDER BY cnt DESC, updated_at DESC LIMIT #{size}")
     List<String> listTop(@Param("size") int size);
+
+    @Select("SELECT keyword, cnt FROM hot_search ORDER BY cnt DESC, updated_at DESC LIMIT #{size}")
+    List<java.util.Map<String, Object>> listTopWithCount(@Param("size") int size);
 }

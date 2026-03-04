@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -22,6 +23,15 @@ public class CategoryController {
     public R list() {
         List<Map<String,Object>> list = categoryService.listEnabled();
         return R.success(CodeEnum.SUCCESS, list);
+    }
+
+    @GetMapping("/list/options")
+    @ResponseBody
+    public R listOptions() {
+        Map<String, Object> out = new HashMap<>();
+        out.put("defaultList", categoryService.listDefaultNames());
+        out.put("customList", categoryService.listEnabled());
+        return R.success(CodeEnum.SUCCESS, out);
     }
 
     // admin endpoints (optional)

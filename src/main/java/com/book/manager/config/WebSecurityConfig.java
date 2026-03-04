@@ -100,9 +100,13 @@ public class WebSecurityConfig {
                                 // ✅ 专题管理接口仅管理员可用
                                 "/topic/admin/**",
 
-                                // 公告管理后台接口仅管理员可用（新增/编辑/删除/上下线/置顶等）
-                                "/announcement/admin/**"
+                                // 馆藏管理后台接口仅管理员可用
+                                "/nav/admin/**"
                         ).access(AuthorityAuthorizationManager.hasAnyAuthority("ROLE_0", "ROLE_1"))
+
+                        // 公告管理后台接口仅管理员可用（新增/编辑/删除/上下线/置顶等）
+                        .requestMatchers("/announcement/admin/**")
+                        .access(AuthorityAuthorizationManager.hasAuthority("ROLE_0"))
 
                         // 其他请求：只要登录就行（普通用户也能进系统）
                         .anyRequest().authenticated()

@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
     <meta charset="utf-8">
     <link href="/javaex/pc/css/common.css" rel="stylesheet" />
     <link href="/javaex/pc/css/skin/tina.css" rel="stylesheet" />
+    <link href="/javaex/pc/css/module-theme.css" rel="stylesheet" />
     <script src="/javaex/pc/lib/jquery-1.7.2.min.js"></script>
     <script src="/javaex/pc/js/javaex.min.js"></script>
     <title>座位时间段配额</title>
@@ -14,16 +15,26 @@
         input.text{height:34px;}
     </style>
 </head>
-<body>
+<body class="module-theme">
 <div class="card">
-    <h2>座位时间段配额</h2>
+    <h2>座位时段配额管理</h2>
 
     <div class="row">
-        <input id="slotDate" class="text" placeholder="slotDate: 2026-02-27" style="width:160px;">
-        <input id="slotStart" class="text" placeholder="slotStart: 2026-02-27 08:00:00" style="width:220px;">
-        <input id="slotEnd" class="text" placeholder="slotEnd: 2026-02-27 12:00:00" style="width:220px;">
-        <input id="room" class="text" placeholder="room: 1号阅览室" style="width:160px;">
+        <label for="slotDate">预约日期</label>
+        <input id="slotDate" type="date" class="text" style="width:170px;">
+
+        <label for="slotStart">开始时间</label>
+        <input id="slotStart" type="datetime-local" class="text" style="width:220px;">
+
+        <label for="slotEnd">结束时间</label>
+        <input id="slotEnd" type="datetime-local" class="text" style="width:220px;">
+
+        <label for="room">阅览室</label>
+        <input id="room" class="text" placeholder="例如：1号阅览室" style="width:160px;">
+
+        <label for="maxCount">配额上限</label>
         <input id="maxCount" class="text" placeholder="最大预约数" style="width:120px;">
+
         <button class="button green" onclick="save()">保存/更新</button>
         <a class="button blue empty" href="javascript:parent.page('seat/seat-rule-config');">返回规则</a>
     </div>
@@ -31,12 +42,12 @@
     <table class="table color2">
         <thead>
         <tr align="center">
-            <th>slotDate</th>
-            <th>slotStart</th>
-            <th>slotEnd</th>
-            <th>room</th>
-            <th>reservedCount</th>
-            <th>maxCount</th>
+            <th>预约日期</th>
+            <th>开始时间</th>
+            <th>结束时间</th>
+            <th>阅览室</th>
+            <th>已预约</th>
+            <th>配额上限</th>
             <th style="width:120px;">操作</th>
         </tr>
         </thead>
@@ -44,12 +55,35 @@
     </table>
 
     <div style="margin-top:10px;color:#999;">
-        输入时间格式建议：slotDate=2026-02-27；slotStart/slotEnd=2026-02-27 08:00:00
+        请选择日期和时间，系统将按 yyyy-MM-dd HH:mm:ss 格式提交。
     </div>
 </div>
 
 <script>
-    $(function(){ load(); });
+    $(function(){
+        var now = new Date();
+        var y = now.getFullYear();
+        var m = String(now.getMonth() + 1).padStart(2, '0');
+        var d = String(now.getDate()).padStart(2, '0');
+        $('#slotDate').val(y + '-' + m + '-' + d);
+        load();
+    });
+
+    function normalizeDateTime(s){
+        if(!s) return '';
+        var v = String(s);
+        if(v.length >= 19) return v.substring(0, 19).replace('T', ' ');
+        return v.replace('T', ' ');
+    }
+
+    function toServerDateTime(localVal){
+        if(!localVal) return '';
+        var v = String(localVal).trim();
+        if(v.indexOf('T') < 0) return v;
+        if(v.length === 16) return v.replace('T', ' ') + ':00';
+        if(v.length >= 19) return v.substring(0, 19).replace('T', ' ');
+        return v.replace('T', ' ');
+    }
 
     function load(){
         $.get('/seat/rule/quota/list', function(res){
@@ -59,8 +93,8 @@
             $.each(list, function(_, q){
                 html += "<tr align='center'>";
                 html += "<td>"+(q.slotDate||'')+"</td>";
-                html += "<td>"+(q.slotStart||'')+"</td>";
-                html += "<td>"+(q.slotEnd||'')+"</td>";
+                html += "<td>"+normalizeDateTime(q.slotStart)+"</td>";
+                html += "<td>"+normalizeDateTime(q.slotEnd)+"</td>";
                 html += "<td>"+(q.room||'')+"</td>";
                 html += "<td>"+(q.reservedCount==null?0:q.reservedCount)+"</td>";
                 html += "<td>"+(q.maxCount==null?0:q.maxCount)+"</td>";
@@ -72,13 +106,41 @@
     }
 
     function save(){
+        var slotDate = $('#slotDate').val();
+        var slotStart = toServerDateTime($('#slotStart').val());
+        var slotEnd = toServerDateTime($('#slotEnd').val());
+        var room = $('#room').val();
+        var maxCount = parseInt($('#maxCount').val()||'0', 10);
+
+        if(!slotDate){
+            javaex.message({content:'请选择预约日期', type:'error'});
+            return;
+        }
+        if(!slotStart || !slotEnd){
+            javaex.message({content:'请选择开始和结束时间', type:'error'});
+            return;
+        }
+        if(slotStart >= slotEnd){
+            javaex.message({content:'结束时间必须晚于开始时间', type:'error'});
+            return;
+        }
+        if(!room){
+            javaex.message({content:'请输入阅览室名称', type:'error'});
+            return;
+        }
+        if(isNaN(maxCount) || maxCount <= 0){
+            javaex.message({content:'配额上限必须大于0', type:'error'});
+            return;
+        }
+
         var data = {
-            slotDate: $('#slotDate').val(),
-            slotStart: $('#slotStart').val(),
-            slotEnd: $('#slotEnd').val(),
-            room: $('#room').val(),
-            maxCount: parseInt($('#maxCount').val()||'0')
+            slotDate: slotDate,
+            slotStart: slotStart,
+            slotEnd: slotEnd,
+            room: room,
+            maxCount: maxCount
         };
+
         $.ajax({
             url:'/seat/rule/quota/save',
             type:'POST',

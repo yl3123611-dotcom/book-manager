@@ -27,6 +27,9 @@ public class HomeService {
     @Autowired
     private BookMapper bookMapper;
 
+    @Autowired
+    private HotSearchService hotSearchService;
+
     public List<HomeBanner> getEnabledBanners() {
         return homeBannerMapper.listEnabled();
     }
@@ -56,6 +59,14 @@ public class HomeService {
             outs.add(out);
         }
         return outs;
+    }
+
+    public List<Map<String, Object>> getCategoryStats() {
+        return bookMapper.countByType();
+    }
+
+    public List<Map<String, Object>> getHotSearchStats(int size) {
+        return hotSearchService.listTopWithCount(size);
     }
 
     // ===== Admin ops =====

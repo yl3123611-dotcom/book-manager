@@ -66,6 +66,9 @@ public class Book {
     @Column(columnDefinition = "TEXT") // 建议指定为 TEXT 类型以支持长文本
     private String introduction;
 
+    @Schema(description = "书籍位置（管理员填写）")
+    private String locationText;
+
     /*
      * JSON 示例：
      * {
@@ -80,7 +83,8 @@ public class Book {
      * "type":"文学",
      * "publishTime":"2024-01-01T00:00:00",
      * "cover":"/images/upload/uuid.jpg",
-     * "introduction":"这是一本好书..."
+     * "introduction":"这是一本好书...",
+     * "locationText":"二楼A区-第3书架-第2层"
      * }
      */
 }

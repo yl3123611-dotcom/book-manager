@@ -48,8 +48,8 @@ public interface SeatMapper {
     @Delete("DELETE FROM seat WHERE id = #{id}")
     int deleteSeat(Integer id);
 
-    // 检查座位是否有正在进行的预约
-    @Select("SELECT COUNT(1) FROM seat_reservation WHERE seat_id = #{seatId} AND status = 1")
+    // 检查座位是否有正在进行的预约（1待签到 2使用中 3暂离）
+    @Select("SELECT COUNT(1) FROM seat_reservation WHERE seat_id = #{seatId} AND status IN (1,2,3)")
     int countActiveReservationBySeat(@Param("seatId") Integer seatId);
 
     // 批量添加座位
@@ -63,16 +63,16 @@ public interface SeatMapper {
 
     // ==================== 预约管理 ====================
 
-    // 查询用户当前是否存在未结束的预约（status=1）
-    @Select("SELECT COUNT(1) FROM seat_reservation WHERE user_id = #{userId} AND status = 1")
+    // 查询用户当前是否存在未结束的预约（1待签到 2使用中 3暂离）
+    @Select("SELECT COUNT(1) FROM seat_reservation WHERE user_id = #{userId} AND status IN (1,2,3)")
     int countActiveReservationByUser(@Param("userId") Integer userId);
 
-    // 查询用户在某个座位上的有效预约（status=1）
-    @Select("SELECT * FROM seat_reservation WHERE seat_id = #{seatId} AND user_id = #{userId} AND status = 1 LIMIT 1")
+    // 查询用户在某个座位上的有效预约（1待签到 2使用中 3暂离）
+    @Select("SELECT * FROM seat_reservation WHERE seat_id = #{seatId} AND user_id = #{userId} AND status IN (1,2,3) LIMIT 1")
     SeatReservation selectActiveReservation(@Param("seatId") Integer seatId, @Param("userId") Integer userId);
 
     // 释放座位（结束预约，仅允许预约者本人签退）
-    @Update("UPDATE seat_reservation SET status = 3, end_time = NOW() WHERE seat_id = #{seatId} AND user_id = #{userId} AND status = 1")
+    @Update("UPDATE seat_reservation SET status = 4, end_time = NOW() WHERE seat_id = #{seatId} AND user_id = #{userId} AND status IN (1,2,3)")
     int endReservationByUser(@Param("seatId") Integer seatId, @Param("userId") Integer userId);
 
     // 添加预约记录
@@ -87,7 +87,7 @@ public interface SeatMapper {
     List<SeatReservation> selectMyReservations(Integer userId);
 
     // 释放座位（结束预约）- 兼容原逻辑
-    @Update("UPDATE seat_reservation SET status = 3, end_time = NOW() WHERE seat_id = #{seatId} AND status = 1")
+    @Update("UPDATE seat_reservation SET status = 4, end_time = NOW() WHERE seat_id = #{seatId} AND status IN (1,2,3)")
     int endReservation(Integer seatId);
 
     // 查询所有预约记录（管理员用）

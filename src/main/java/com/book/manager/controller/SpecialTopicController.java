@@ -53,11 +53,6 @@ public class SpecialTopicController {
     }
 
     // ===== Admin APIs =====
-    @GetMapping("/admin/list")
-    @ResponseBody
-    public R adminList(){
-        return R.success(CodeEnum.SUCCESS, service.listTopics());
-    }
 
     @PostMapping("/admin/add")
     @ResponseBody

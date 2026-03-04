@@ -3,81 +3,160 @@
 <head>
     <meta charset="utf-8">
     <!-- CSRF tokens: Thymeleaf will replace these if available; kept optional -->
-    <meta name="_csrf" th:content="${_csrf.token}" />
-    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+    <meta name="_csrf" content="" />
+    <meta name="_csrf_header" content="X-CSRF-TOKEN" />
     <link href="../../javaex/pc/css/icomoon.css" rel="stylesheet" />
     <link href="../../javaex/pc/css/animate.css" rel="stylesheet" />
     <link href="../../javaex/pc/css/common.css" rel="stylesheet" />
     <link href="../../javaex/pc/css/skin/tina.css" rel="stylesheet" />
+    <link href="../../javaex/pc/css/module-theme.css" rel="stylesheet" />
     <script src="../../javaex/pc/lib/jquery-1.7.2.min.js"></script>
     <script src="../../javaex/pc/js/common.js"></script>
     <script src="../../javaex/pc/js/javaex.min.js"></script>
     <title>公告发布/管理</title>
     <style>
-        body { background-color: #f0f2f5; }
-        .wrap { padding: 16px; }
-        .card { background:#fff; border:1px solid #e8e8e8; border-radius:6px; padding:16px; }
-        .toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:12px;flex-wrap:wrap;}
-        .toolbar .left{display:flex;align-items:center;gap:10px;}
-        .form-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-        .form-row label{color:rgba(0,0,0,0.65);font-size:13px;}
-        input.text, textarea{width:100%;}
-        textarea{min-height:120px;resize:vertical;}
-        .modal-mask{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,0.45);display:none;z-index:9999;}
-        .modal{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:720px;max-width:calc(100% - 32px);background:#fff;border-radius:8px;overflow:hidden;}
-        .modal-hd{padding:12px 16px;border-bottom:1px solid #f0f0f0;font-weight:600;display:flex;justify-content:space-between;align-items:center;}
-        .modal-bd{padding:16px;}
-        .modal-ft{padding:12px 16px;border-top:1px solid #f0f0f0;display:flex;justify-content:flex-end;gap:10px;}
-        .link{color:#1890ff;cursor:pointer;}
-        .tag{display:inline-block;padding:0 6px;border-radius:10px;font-size:12px;line-height:18px;height:18px;}
-        .tag-pin{background:#ff4d4f;color:#fff;}
-        .tag-off{background:rgba(0,0,0,0.06);color:rgba(0,0,0,0.65);}
+        body { background-color: #f0f2f5; padding: 20px; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; }
+
+        .block {
+            background: #fff;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+            border: none;
+            min-height: 600px;
+        }
+        .block-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        .block-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            display: flex;
+            align-items: center;
+        }
+        .block-title::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 18px;
+            background: #1890ff;
+            margin-right: 8px;
+            border-radius: 2px;
+        }
+
+        .breadcrumb { margin-bottom: 16px; color: #595959; }
+        .breadcrumb span { margin: 0 4px; }
+        .breadcrumb .active { color: #1890ff; font-weight: 500; }
+
+        .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; gap: 12px; flex-wrap: wrap; }
+        .toolbar .left { display: flex; align-items: center; gap: 10px; }
+
+        /* Table overrides */
+        .table { width: 100%; border-collapse: collapse; }
+        .table thead th {
+            background-color: #fafafa;
+            color: #595959;
+            font-weight: 600;
+            padding: 16px;
+            border-bottom: 1px solid #e8e8e8;
+            text-align: left;
+        }
+        .table tbody td { padding: 16px; border-bottom: 1px solid #e8e8e8; color: #595959; }
+        .table tbody tr:hover { background-color: #fafafa; }
+
+        .link { color: #1890ff; cursor: pointer; margin-right: 10px; }
+        .link:hover { text-decoration: underline; }
+
+        .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+        .tag-pin { background: #fff1f0; color: #ff4d4f; border: 1px solid #ffa39e; }
+        .tag-off { background: #f5f5f5; color: #8c8c8c; border: 1px solid #d9d9d9; }
+
+        .modal-mask { position: fixed; left: 0; top: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.45); display: none; z-index: 9999; }
+        .modal {
+            position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+            width: 720px; max-width: calc(100% - 32px);
+            background: #fff; border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+        .modal-hd {
+            padding: 16px 24px; border-bottom: 1px solid #f0f0f0;
+            font-weight: 600; font-size: 16px; color: #333;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .modal-bd { padding: 24px; }
+        .modal-ft {
+            padding: 16px 24px; border-top: 1px solid #f0f0f0; background: #fafafa;
+            display: flex; justify-content: flex-end; gap: 10px;
+        }
+
+        input.text {
+            width: 100%; height: 36px; padding: 6px 12px; border: 1px solid #d9d9d9; border-radius: 4px;
+            transition: all 0.3s;
+        }
+        input.text:focus, textarea:focus { border-color: #40a9ff; outline: none; box-shadow: 0 0 0 2px rgba(24,144,255,0.2); }
+        textarea {
+            width: 100%; padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 4px;
+            min-height: 120px; resize: vertical; margin-top: 8px;
+        }
+
+        .form-row { margin-bottom: 20px; }
+        .form-row label { display: block; margin-bottom: 8px; color: #333; font-weight: 500; }
     </style>
 </head>
-<body>
-<div class="wrap">
-    <div class="breadcrumb">
-        <span>公告管理</span>
-        <span class="divider">/</span>
-        <span class="active">公告发布/管理</span>
+<body class="module-theme">
+<div class="breadcrumb">
+    <span>公告管理</span>
+    <span>/</span>
+    <span class="active">公告发布/管理</span>
+</div>
+
+<div class="block">
+    <div class="block-header">
+        <div class="block-title">公告管理</div>
+        <span style="color:#8c8c8c;font-size:13px;">管理系统发布的公告信息</span>
     </div>
 
-    <div class="card">
-        <div class="toolbar">
-            <div class="left">
-                <button class="button blue" onclick="openEditor();"><i class="icon-plus"></i>新增公告</button>
-                <span style="color:rgba(0,0,0,0.45);font-size:12px;">提示：置顶公告会优先显示在首页公告栏</span>
-            </div>
-            <div class="right form-row">
-                <label>每页</label>
-                <select id="pageSize" class="select" style="min-width:120px;">
-                    <option value="10">10</option>
-                    <option value="20">20</option>
-                    <option value="50">50</option>
-                </select>
-                <button class="button" onclick="loadPage(1);">刷新</button>
-            </div>
+    <div class="toolbar">
+        <div class="left">
+            <button class="button blue" onclick="openEditor();"><span class="icon-plus"></span> 新增公告</button>
+            <span style="color:rgba(0,0,0,0.45);font-size:12px;margin-left:8px;">提示：置顶公告会优先显示在首页公告栏</span>
         </div>
+        <div class="right form-row">
+            <label>每页</label>
+            <select id="pageSize" class="select" style="min-width:120px;">
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+            </select>
+            <button class="button" onclick="loadPage(1);">刷新</button>
+        </div>
+    </div>
 
-        <table class="table" style="background:#fff;">
-            <thead>
-            <tr>
-                <th style="width:70px;">ID</th>
-                <th>标题</th>
-                <th style="width:120px;">状态</th>
-                <th style="width:160px;">发布时间</th>
-                <th style="width:220px;">操作</th>
-            </tr>
-            </thead>
-            <tbody id="tbody"></tbody>
-        </table>
+    <table class="table" style="background:#fff;">
+        <thead>
+        <tr>
+            <th style="width:70px;">ID</th>
+            <th>标题</th>
+            <th style="width:120px;">状态</th>
+            <th style="width:160px;">发布时间</th>
+            <th style="width:220px;">操作</th>
+        </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+    </table>
 
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;">
-            <div id="pageInfo" style="color:rgba(0,0,0,0.45);font-size:12px;"></div>
-            <div style="display:flex;gap:8px;">
-                <button class="button" onclick="prevPage();">上一页</button>
-                <button class="button" onclick="nextPage();">下一页</button>
-            </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;">
+        <div id="pageInfo" style="color:rgba(0,0,0,0.45);font-size:12px;"></div>
+        <div style="display:flex;gap:8px;">
+            <button class="button" onclick="prevPage();">上一页</button>
+            <button class="button" onclick="nextPage();">下一页</button>
         </div>
     </div>
 </div>
@@ -100,7 +179,7 @@
             <div class="form-row" style="margin-bottom:10px;">
                 <label style="width:70px;">发布时间</label>
                 <div style="flex:1;min-width:260px;">
-                    <input class="text" id="annPublishTime" placeholder="例如：2026-02-28 16:57:56">
+                    <input class="text" id="annPublishTime" placeholder="例如��2026-02-28 16:57:56">
                     <div style="color:rgba(0,0,0,0.45);font-size:12px;margin-top:6px;">留空默认当前时间；格式支持：yyyy-MM-dd HH:mm:ss</div>
                 </div>
             </div>
@@ -177,16 +256,26 @@
 
     function loadPage(page){
         currPage = page || 1;
-        $.get('/announcement/admin/page?page=' + currPage + '&size=' + pageSize(), function(res){
-            if(!(res && res.code === 200)){
+        $.ajax({
+            type: 'GET',
+            url: '/announcement/admin/page?page=' + currPage + '&size=' + pageSize(),
+            dataType: 'json',
+            success: function(res){
+                if(!(res && res.code === 200)){
+                    render([]);
+                    javaex.message({content:(res && res.msg) ? res.msg : '加载失败', type:'error'});
+                    return;
+                }
+                var data = res.data || {};
+                total = data.total || 0;
+                currPage = data.page || currPage;
+                render(data.list || []);
+                $('#pageInfo').text('第 ' + currPage + ' 页 / 共 ' + Math.max(1, Math.ceil(total / pageSize())) + ' 页，记录数：' + total);
+            },
+            error: function(xhr){
                 render([]);
-                return;
+                javaex.message({content:'刷新失败：' + (xhr.status || '') + ' ' + (xhr.statusText || ''), type:'error'});
             }
-            var data = res.data || {};
-            total = data.total || 0;
-            currPage = data.page || currPage;
-            render(data.list || []);
-            $('#pageInfo').text('第 ' + currPage + ' 页 / 共 ' + Math.max(1, Math.ceil(total / pageSize())) + ' 页，记录数：' + total);
         });
     }
 
@@ -343,29 +432,43 @@
     }
 
     function del(id){
+        // javaex.confirm expects callback as executable string, not a JS function object.
         javaex.confirm({
-            content : '确认删除该公告？',
-            callback : function(r){
-                if(r){
-                    $.ajax({
-                        type: 'POST',
-                        url: '/announcement/admin/delete',
-                        data: { id: id },
-                        dataType: 'json',
-                        success: function(res){
-                            if(res && res.code === 200){
-                                javaex.message({content:'已删除', type:'success'});
-                                loadPage(1);
-                            }else{
-                                javaex.message({content:(res && res.msg) ? res.msg : '删除失败', type:'error'});
-                            }
-                        },
-                        error: function(xhr){
-                            // 常见：302 跳转到 /login；403 没权限；500 后端异常
-                            javaex.message({content:'删除失败：' + (xhr.status || '') + ' ' + (xhr.statusText || ''), type:'error'});
-                        }
-                    });
+            content: '确认删除该公告？',
+            callback: 'delCallback(' + encodeURIComponent(id) + ')'
+        });
+    }
+
+    function delCallback(id){
+        $.ajax({
+            type: 'POST',
+            url: '/announcement/admin/delete?id=' + encodeURIComponent(id),
+            dataType: 'json',
+            success: function(res){
+                if(res && (res.code === 200 || res.code === '200')){
+                    javaex.message({content:'已删除', type:'success'});
+                    loadPage(1);
+                }else{
+                    javaex.message({content:(res && res.msg) ? res.msg : '删除失败', type:'error'});
                 }
+            },
+            error: function(xhr){
+                $.ajax({
+                    type: 'GET',
+                    url: '/announcement/admin/delete?id=' + encodeURIComponent(id),
+                    dataType: 'json',
+                    success: function(res2){
+                        if(res2 && (res2.code === 200 || res2.code === '200')){
+                            javaex.message({content:'已删除', type:'success'});
+                            loadPage(1);
+                        }else{
+                            javaex.message({content:(res2 && res2.msg) ? res2.msg : '删除失败', type:'error'});
+                        }
+                    },
+                    error: function(xhr2){
+                        javaex.message({content:'删除失败：' + (xhr2.status || xhr.status || '') + ' ' + (xhr2.statusText || xhr.statusText || ''), type:'error'});
+                    }
+                });
             }
         });
     }
@@ -379,6 +482,7 @@
     window.enabled = enabled;
     window.pin = pin;
     window.del = del;
+    window.delCallback = delCallback;
     window.prevPage = prevPage;
     window.nextPage = nextPage;
     window.loadPage = loadPage;

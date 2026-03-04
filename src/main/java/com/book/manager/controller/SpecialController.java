@@ -16,4 +16,10 @@ public class SpecialController {
     public String hongloumeng() {
         return "special/hongloumeng";
     }
+
+    @Operation(summary = "专题管理页面")
+    @GetMapping("/admin/manage")
+    public String adminManage() {
+        return "special/admin-manage";
+    }
 }

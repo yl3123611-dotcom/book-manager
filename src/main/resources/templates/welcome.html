@@ -9,6 +9,7 @@
     <script src="../javaex/pc/lib/jquery-1.7.2.min.js"></script>
     <script src="../javaex/pc/js/common.js"></script>
     <script src="../javaex/pc/js/javaex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
     <title>首页</title>
     <style>
         body { background-color: #f0f2f5; font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, sans-serif; }
@@ -144,6 +145,12 @@
         .ex-slide { width: 100%; height: 520px; background: #eee; margin-bottom: 40px; }
         .ex-slide ul.focus-bg li { width: 100%; height: 520px; }
 
+        /* 统计面板样式 */
+        .stats-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0 24px 0;}
+        .stats-card{background:#fff;border:1px solid #e8e8e8;border-radius:8px;padding:14px 16px;}
+        .stats-title{font-size:15px;color:#333;font-weight:600;margin-bottom:10px;}
+        .chart-box{height:280px;}
+        .stats-fallback{font-size:12px;color:#666;line-height:1.8;max-height:260px;overflow:auto;}
     </style>
 </head>
 <body>
@@ -155,6 +162,18 @@
         <div class="ann-bar-more" onclick="parent.page('announcement/list')">更多</div>
     </div>
     <div id="annItems" class="ann-items"></div>
+</div>
+
+<!-- 统计面板：馆藏分类直方图 + 热门搜索占比（公告栏下方） -->
+<div class="stats-wrap" style="margin:16px 16px 0 16px;">
+    <div class="stats-card">
+        <div class="stats-title">馆藏分类直方图</div>
+        <div id="categoryChart" class="chart-box"></div>
+    </div>
+    <div class="stats-card">
+        <div class="stats-title">热门搜索占比</div>
+        <div id="searchPieChart" class="chart-box"></div>
+    </div>
 </div>
 
 <div class="container">
@@ -188,6 +207,7 @@
         <a id="dangshiToAdmin" href="javascript:;" style="display:none;margin-left:10px;color:#1890ff;text-decoration:none;" onclick="window.location.href='/special/admin/manage'">去专题管理 &gt;</a>
     </div>
 </div>
+
 
 </div> <!-- End Container -->
 
@@ -226,6 +246,7 @@
         loadRecommendations();  // ✅ 推荐走后台
         initDangshiAdminHint();
         loadDangshiPreview();
+        loadHomeStats();
     });
 
     function initDangshiAdminHint(){
@@ -244,11 +265,20 @@
     }
 
     function normalizeCover(cover){
-        if(!cover) return '../javaex/img/1.jpg';
-        if (cover.indexOf("/") !== 0 && cover.indexOf("http") !== 0 && cover.indexOf("..") !== 0) {
-            return "/" + cover;
-        }
-        return cover;
+        if(!cover) return '/javaex/img/1.jpg';
+
+        var c = String(cover).trim().replace(/\\/g, '/');
+        if(!c) return '/javaex/img/1.jpg';
+
+        // External/data URLs are used as-is.
+        if (/^(https?:)?\/\//.test(c) || /^data:/.test(c)) return c;
+
+        // Compatible with historical storage: /images/upload/** -> /upload/**
+        c = c.replace(/^\/?images\/upload\//i, '/upload/');
+
+        if (/^upload\//i.test(c)) return '/' + c;
+        if (/^\//.test(c)) return c;
+        return '/' + c;
     }
 
     function setDangshiReloadLoading(loading){
@@ -283,7 +313,7 @@
                 html += `
                     <div class="book-card" onclick="window.location.href='/book/detail-view?id=${book.id}'">
                         <div class="card-img">
-                            <img src="${cover}" alt="${book.name||''}">
+                            <img src="${cover}" alt="${book.name||''}" onerror="this.onerror=null;this.src='/javaex/img/1.jpg';">
                         </div>
                         <div class="card-info">
                             <div class="card-name" title="${book.name||''}">${book.name||''}</div>
@@ -381,6 +411,169 @@
         });
     }
 
+    var PIE_COLORS = ['#1890ff','#52c41a','#faad14','#f5222d','#722ed1','#13c2c2','#eb2f96','#fa8c16'];
+    var categoryStatsData = [];
+    var searchStatsData = [];
+    var categoryChartIns = null;
+    var searchPieChartIns = null;
+
+    function loadHomeStats(){
+        $.get('/home/stats/category', function(res){
+            categoryStatsData = (res && res.code==200) ? (res.data || []) : [];
+            renderHomeCharts();
+        });
+        $.get('/home/stats/search?size=8', function(res){
+            searchStatsData = (res && res.code==200) ? (res.data || []) : [];
+            renderHomeCharts();
+        });
+    }
+
+    function renderHomeCharts(){
+        ensureEchartsReady(function(ok){
+            if(ok){
+                renderCategoryBarChart(categoryStatsData);
+                renderSearchPieChart(searchStatsData);
+            }else{
+                renderCategoryFallback(categoryStatsData);
+                renderSearchFallback(searchStatsData);
+            }
+        });
+    }
+
+    function ensureEchartsReady(callback){
+        if(window.echarts){
+            callback(true);
+            return;
+        }
+        loadScript('https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js', function(ok1){
+            if(ok1 && window.echarts){
+                callback(true);
+                return;
+            }
+            loadScript('https://unpkg.com/echarts@5/dist/echarts.min.js', function(ok2){
+                callback(!!(ok2 && window.echarts));
+            });
+        });
+    }
+
+    function loadScript(src, done){
+        var existed = document.querySelector('script[data-src="' + src + '"]');
+        if(existed){
+            done(!!window.echarts);
+            return;
+        }
+        var s = document.createElement('script');
+        s.src = src;
+        s.setAttribute('data-src', src);
+        s.onload = function(){ done(true); };
+        s.onerror = function(){ done(false); };
+        document.head.appendChild(s);
+    }
+
+    function renderCategoryBarChart(list){
+        var el = document.getElementById('categoryChart');
+        if(!el) return;
+        if(categoryChartIns){ categoryChartIns.dispose(); }
+        categoryChartIns = echarts.init(el);
+
+        var names = [];
+        var values = [];
+        for(var i=0;i<list.length;i++){
+            names.push(list[i].type || '未分类');
+            values.push(parseInt(list[i].cnt || 0, 10));
+        }
+
+        categoryChartIns.setOption({
+            color: ['#1890ff'],
+            tooltip: { trigger: 'axis' },
+            grid: { left: 50, right: 18, top: 24, bottom: 48 },
+            xAxis: {
+                type: 'category',
+                data: names,
+                axisLabel: { interval: 0, rotate: names.length > 6 ? 25 : 0 }
+            },
+            yAxis: { type: 'value', minInterval: 1 },
+            series: [{
+                type: 'bar',
+                data: values,
+                barMaxWidth: 36,
+                itemStyle: { borderRadius: [4,4,0,0] },
+                label: { show: true, position: 'top', color: '#666' }
+            }],
+            graphic: (!list.length ? [{
+                type: 'text', left: 'center', top: 'middle',
+                style: { text: '暂无数据', fill: '#999', fontSize: 12 }
+            }] : [])
+        });
+    }
+
+    function renderSearchPieChart(list){
+        var el = document.getElementById('searchPieChart');
+        if(!el) return;
+        if(searchPieChartIns){ searchPieChartIns.dispose(); }
+        searchPieChartIns = echarts.init(el);
+
+        var data = [];
+        for(var i=0;i<list.length;i++){
+            data.push({ value: parseInt(list[i].cnt || 0, 10), name: list[i].keyword || '-' });
+        }
+
+        searchPieChartIns.setOption({
+            color: PIE_COLORS,
+            tooltip: { trigger: 'item' },
+            legend: { type: 'scroll', bottom: 0 },
+            series: [{
+                type: 'pie',
+                radius: ['38%', '68%'],
+                center: ['50%', '42%'],
+                avoidLabelOverlap: true,
+                itemStyle: { borderColor: '#fff', borderWidth: 2 },
+                label: { formatter: '{b}: {d}%' },
+                data: data
+            }],
+            graphic: (!list.length ? [{
+                type: 'text', left: 'center', top: 'middle',
+                style: { text: '暂无数据', fill: '#999', fontSize: 12 }
+            }] : [])
+        });
+    }
+
+    function renderCategoryFallback(list){
+        var $box = $('#categoryChart');
+        if(!list.length){
+            $box.html('<div class="stats-fallback">暂无数据</div>');
+            return;
+        }
+        var html = '<div class="stats-fallback">';
+        for(var i=0;i<list.length;i++){
+            html += '<div>' + (list[i].type || '未分类') + '：' + parseInt(list[i].cnt || 0, 10) + '</div>';
+        }
+        html += '</div>';
+        $box.html(html);
+    }
+
+    function renderSearchFallback(list){
+        var $box = $('#searchPieChart');
+        if(!list.length){
+            $box.html('<div class="stats-fallback">暂无数据</div>');
+            return;
+        }
+        var html = '<div class="stats-fallback">';
+        for(var i=0;i<list.length;i++){
+            html += '<div>' + (list[i].keyword || '-') + '：' + parseInt(list[i].cnt || 0, 10) + '</div>';
+        }
+        html += '</div>';
+        $box.html(html);
+    }
+
+    $(window).on('resize', function(){
+        if(categoryChartIns){ categoryChartIns.resize(); }
+        if(searchPieChartIns){ searchPieChartIns.resize(); }
+    });
+
+    // =======================
+    // 其他现有代码
+    // =======================
     function escapeHtml(s){
         if(s === null || s === undefined) return '';
         return String(s)

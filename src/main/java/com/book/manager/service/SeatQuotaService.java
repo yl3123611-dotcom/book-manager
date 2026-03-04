@@ -56,4 +56,18 @@ public class SeatQuotaService {
     public SeatReservationSlotQuota find(Date slotDate, Date slotStart, Date slotEnd, String room) {
         return mapper.find(slotDate, slotStart, slotEnd, room);
     }
+
+    public boolean incrementIfAvailable(Long id) {
+        if (id == null) {
+            return false;
+        }
+        return mapper.incrementReservedIfAvailable(id) > 0;
+    }
+
+    public boolean decrementReserved(Long id) {
+        if (id == null) {
+            return false;
+        }
+        return mapper.decrementReserved(id) > 0;
+    }
 }

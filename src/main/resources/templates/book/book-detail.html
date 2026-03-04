@@ -307,6 +307,13 @@
         return parts.length ? parts.join(' · ') : '暂无定位信息';
     }
 
+    function resolveLocationText(book){
+        if(book && book.locationText && String(book.locationText).trim()){
+            return String(book.locationText).trim();
+        }
+        return formatLocation(book ? book.location : null);
+    }
+
     // 加载图书详情
     function loadBookDetail(id) {
         $.get("/book/detail", {id: id}, function(res) {
@@ -325,7 +332,7 @@
                 $("#detailPrice").text(book.price != null ? ("￥" + book.price) : "-");
 
                 // ✅ 馆藏位置
-                $("#detailLocation").text(formatLocation(book.location));
+                $("#detailLocation").text(resolveLocationText(book));
 
                 if (book.cover) {
                     $("#detailCover").attr("src", normalizeCoverPath(book.cover));

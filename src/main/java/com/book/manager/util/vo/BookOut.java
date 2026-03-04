@@ -53,6 +53,9 @@ public class BookOut {
     @Schema(description = "图书简介")
     private String introduction;
 
+    @Schema(description = "书籍位置（管理员填写）")
+    private String locationText;
+
     @Schema(description = "馆藏位置信息（floorName/shelfCode/shelfName/layerNo/cellNo/callNo 等）")
     private Map<String, Object> location;
 }

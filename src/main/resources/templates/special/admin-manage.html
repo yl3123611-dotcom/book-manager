@@ -5,9 +5,10 @@
     <title>专题管理</title>
     <link href="../../javaex/pc/css/common.css" rel="stylesheet" />
     <link href="../../javaex/pc/css/skin/tina.css" rel="stylesheet" />
+    <link href="../../javaex/pc/css/module-theme.css" rel="stylesheet" />
     <script src="../../javaex/pc/lib/jquery-1.7.2.min.js"></script>
 </head>
-<body>
+<body class="module-theme">
 <div class="block">
     <h2>专题管理</h2>
     <div class="main">
@@ -153,7 +154,7 @@
         if(!currentTopic){ alert('请先选择专题'); return; }
         $.post('/topic/admin/addBook',{topicId: currentTopic.id, bookId: bookId, sort: 0}, function(res){
             if(res && res.code==200){
-                // INSERT IGNORE: 如果已存在，后端可能返回 code=200 但影响行数=0，我们这里统一提示“已在专题中/已加入”
+                // INSERT IGNORE: 如果已存在，后端可能返回 code=200 但影��行数=0，我们这里统一提示“已在专题中/已加入”
                 setMsg('操作成功：如已存在则不会重复添加');
                 loadTopicBooksBySlug(currentTopic.slug);
             } else {

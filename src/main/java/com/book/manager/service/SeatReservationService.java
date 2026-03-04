@@ -38,8 +38,13 @@ public class SeatReservationService {
         if (seatId == null || seatId <= 0 || slotStart == null || slotEnd == null) {
             return "参数错误";
         }
+
+        // MySQL DATETIME 默认秒级精度，统一归一化避免毫秒导致配额匹配失败
+        slotStart = DateUtil.parse(DateUtil.formatDateTime(slotStart), "yyyy-MM-dd HH:mm:ss");
+        slotEnd = DateUtil.parse(DateUtil.formatDateTime(slotEnd), "yyyy-MM-dd HH:mm:ss");
+
         if (!slotEnd.after(slotStart)) {
-            return "结��时间必须晚于开始时间";
+            return "结束时间必须晚于开始时间";
         }
 
         Users user = userService.findByUsername(username);
@@ -104,7 +109,9 @@ public class SeatReservationService {
         if (quota == null) {
             return "该阅览室此时间段未配置配额，无法预约";
         }
-        if (quota.getReservedCount() >= quota.getMaxCount()) {
+
+        // 先原子占用配额，再写预约记录，避免并发超卖
+        if (!seatQuotaService.incrementIfAvailable(quota.getId())) {
             return "该时间段已约满";
         }
 
@@ -122,10 +129,6 @@ public class SeatReservationService {
         r.setCheckinDeadlineAt(DateUtil.offsetMinute(slotStart, cfg.getCheckinGraceMinutes()));
 
         seatMapper.insertSlotReservation(r);
-
-        // reserved_count + 1
-        quota.setReservedCount(quota.getReservedCount() + 1);
-        seatQuotaService.updateReservedCount(quota.getId(), quota.getReservedCount());
 
         return null; // success
     }
@@ -162,8 +165,7 @@ public class SeatReservationService {
         if (seat != null && target.getSlotDate() != null && target.getSlotStart() != null && target.getSlotEnd() != null) {
             SeatReservationSlotQuota quota = seatQuotaService.find(target.getSlotDate(), target.getSlotStart(), target.getSlotEnd(), seat.getRoom());
             if (quota != null) {
-                int next = Math.max(0, quota.getReservedCount() - 1);
-                seatQuotaService.updateReservedCount(quota.getId(), next);
+                seatQuotaService.decrementReserved(quota.getId());
             }
         }
 

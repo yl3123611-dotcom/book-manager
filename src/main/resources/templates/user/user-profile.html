@@ -4,30 +4,100 @@
     <meta charset="utf-8">
     <link href="../javaex/pc/css/common.css" rel="stylesheet" />
     <link href="../javaex/pc/css/skin/tina.css" rel="stylesheet" />
+    <link href="../javaex/pc/css/module-theme.css" rel="stylesheet" />
     <script src="../javaex/pc/lib/jquery-1.7.2.min.js"></script>
     <script src="../javaex/pc/js/javaex.min.js"></script>
     <title>我的用户画像</title>
     <style>
-        body{background:#f5f7fa;padding:12px;}
-        .card{background:#fff;border-radius:8px;padding:16px;max-width:900px;}
-        .row{display:flex;gap:12px;margin:10px 0;}
-        .k{width:180px;color:#666;}
-        .v{color:#333;}
-        .hint{color:#999;font-size:12px;}
+        body { background-color: #f0f2f5; padding: 20px; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; }
+
+        .breadcrumb { margin-bottom: 16px; color: #595959; }
+        .breadcrumb span { margin: 0 4px; }
+        .breadcrumb .active { color: #1890ff; font-weight: 500; }
+
+        .block {
+            background: #fff;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+            border: none;
+            min-height: 600px;
+        }
+        .block-header {
+            margin-bottom: 30px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        .block-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            display: flex;
+            align-items: center;
+        }
+        .block-title::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 18px;
+            background: #1890ff;
+            margin-right: 8px;
+            border-radius: 2px;
+        }
+
+        .profile-container { max-width: 800px; margin: 0 auto; }
+
+        .row { display: flex; align-items: center; margin-bottom: 20px; }
+        .k { width: 140px; color: #595959; font-weight: 500; text-align: right; margin-right: 16px; }
+        .v { flex: 1; color: #333; }
+
+        input.text {
+            height: 36px; padding: 0 12px; border: 1px solid #d9d9d9; border-radius: 4px;
+            transition: all 0.3s; width: 100%; max-width: 400px;
+        }
+        input.text:focus { border-color: #40a9ff; outline: none; box-shadow: 0 0 0 2px rgba(24,144,255,0.2); }
+
+        .hint { color: #8c8c8c; font-size: 14px; margin-top: 10px; background: #fafafa; padding: 20px; border-radius: 4px; }
+
+        .btn-group { margin-left: 156px; margin-top: 24px; display: flex; gap: 12px; }
+        .button { padding: 0 20px; height: 36px; line-height: 34px; border-radius: 4px; }
     </style>
 </head>
-<body>
-<div class="card">
-    <h2>我的用户画像</h2>
+<body class="module-theme">
+<div class="breadcrumb">
+    <span>用户中心</span>
+    <span>/</span>
+    <span class="active">我的用户画像</span>
+</div>
 
-    <div class="row"><div class="k">年级(grade)</div><div class="v"><input id="grade" class="text" style="width:260px;" placeholder="例如：大三"/></div></div>
-    <div class="row"><div class="k">专业(majors)</div><div class="v"><input id="majors" class="text" style="width:360px;" placeholder="例如：计算机科学与技术"/></div></div>
-    <div class="row"><div class="k">兴趣(interests)</div><div class="v"><input id="interests" class="text" style="width:480px;" placeholder="例如：历史, 科幻, Java"/></div></div>
-    <div style="margin:8px 0 14px;"><button class="button blue" onclick="saveEditable()">保存</button></div>
+<div class="block">
+    <div class="block-header">
+        <div class="block-title">我的用户画像</div>
+    </div>
 
-    <div id="content" class="hint">加载中...</div>
-    <div style="margin-top:14px;">
-        <button class="button green" onclick="recompute()">重新计算画像</button>
+    <div class="profile-container">
+        <div class="row">
+            <div class="k">年级 (Grade)</div>
+            <div class="v"><input id="grade" class="text" placeholder="例如：大三"/></div>
+        </div>
+        <div class="row">
+            <div class="k">专业 (Major)</div>
+            <div class="v"><input id="majors" class="text" placeholder="例如：计算机科学与技术"/></div>
+        </div>
+        <div class="row">
+            <div class="k">兴趣 (Interests)</div>
+            <div class="v"><input id="interests" class="text" placeholder="例如：历史, 科幻, Java (逗号分隔)"/></div>
+        </div>
+
+        <div class="btn-group">
+            <button class="button blue" onclick="saveEditable()">保存基本信息</button>
+            <button class="button green" onclick="recompute()">重新计算画像</button>
+        </div>
+
+        <div style="margin-top: 30px; border-top: 1px solid #f0f0f0; padding-top: 20px;">
+            <h4 style="margin-bottom: 20px; color: #333;">画像分析结果</h4>
+            <div id="content" class="hint">正在加载画像数据...</div>
+        </div>
     </div>
 </div>
 

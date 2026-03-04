@@ -18,5 +18,8 @@ public interface CategoryMapper {
     int update(@Param("id") Integer id, @Param("name") String name, @Param("sort") Integer sort, @Param("enabled") Integer enabled);
 
     int delete(@Param("id") Integer id);
-}
 
+    Map<String, Object> findByName(@Param("name") String name);
+
+    int insertIgnore(@Param("name") String name, @Param("sort") Integer sort);
+}

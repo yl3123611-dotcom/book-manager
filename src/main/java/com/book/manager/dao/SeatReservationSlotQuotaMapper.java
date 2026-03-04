@@ -30,4 +30,10 @@ public interface SeatReservationSlotQuotaMapper {
 
     @Delete("DELETE FROM seat_reservation_slot_quota WHERE id=#{id}")
     int delete(@Param("id") Long id);
+
+    @Update("UPDATE seat_reservation_slot_quota SET reserved_count = reserved_count + 1 WHERE id = #{id} AND reserved_count < max_count")
+    int incrementReservedIfAvailable(@Param("id") Long id);
+
+    @Update("UPDATE seat_reservation_slot_quota SET reserved_count = CASE WHEN reserved_count > 0 THEN reserved_count - 1 ELSE 0 END WHERE id = #{id}")
+    int decrementReserved(@Param("id") Long id);
 }

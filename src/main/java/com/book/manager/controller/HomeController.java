@@ -22,4 +22,15 @@ public class HomeController {
     public R recommends(@RequestParam(defaultValue = "8") Integer size) {
         return R.success(CodeEnum.SUCCESS, homeService.getEnabledRecommends(size));
     }
+
+    @GetMapping("/stats/category")
+    public R categoryStats() {
+        return R.success(CodeEnum.SUCCESS, homeService.getCategoryStats());
+    }
+
+    @GetMapping("/stats/search")
+    public R searchStats(@RequestParam(defaultValue = "8") Integer size) {
+        int s = size == null ? 8 : size;
+        return R.success(CodeEnum.SUCCESS, homeService.getHotSearchStats(s));
+    }
 }

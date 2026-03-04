@@ -4,7 +4,6 @@ import com.book.manager.entity.Book;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Component;
-import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 import java.util.Map;
@@ -38,4 +37,6 @@ public interface BookMapper {
     // 添加接口定义
     List<Book> selectByKeyword(@Param("keyword") String keyword);
     List<Book> selectByIds(@Param("ids") List<Integer> ids);
+
+    List<Map<String, Object>> countByType();
 }

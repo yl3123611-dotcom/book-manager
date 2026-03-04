@@ -79,8 +79,23 @@
 </div>
 
 <script type="text/javascript">
+    function getUrlParam(name){
+        var search = window.location.search || '';
+        if(!search) return '';
+        var q = search.substring(1).split('&');
+        for(var i=0;i<q.length;i++){
+            var kv = q[i].split('=');
+            if(decodeURIComponent(kv[0] || '') === name){
+                return decodeURIComponent(kv[1] || '');
+            }
+        }
+        return '';
+    }
+
     $(document).ready(function(){
-        rander(1,"",10);
+        var presetKeyword = (getUrlParam('keyword') || '').trim();
+        $('#keyword').val(presetKeyword);
+        rander(1,presetKeyword,10);
         loadHotSearch();
         loadRecommends();
     });

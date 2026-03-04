@@ -88,4 +88,19 @@ public class LibraryController {
         boolean ok = libraryService.insertCell(shelfId, layerNo, cellNo, x, y);
         return ok ? R.success(CodeEnum.SUCCESS) : R.failMsg("添加格位失败");
     }
+
+    @GetMapping("/admin/floors")
+    @ResponseBody
+    public R adminFloors(){
+        return R.success(CodeEnum.SUCCESS, libraryService.adminListFloors());
+    }
+
+    @PostMapping("/admin/floor/add")
+    @ResponseBody
+    public R addFloor(@RequestParam String name,
+                      @RequestParam(required = false) Integer sort,
+                      @RequestParam(required = false) String mapImageUrl){
+        boolean ok = libraryService.insertFloor(name, sort == null ? 0 : sort, mapImageUrl);
+        return ok ? R.success(CodeEnum.SUCCESS) : R.failMsg("添加楼层失败");
+    }
 }

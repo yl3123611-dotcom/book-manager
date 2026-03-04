@@ -2,10 +2,10 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <link href="../javaex/pc/css/common.css" rel="stylesheet" />
-    <link href="../javaex/pc/css/skin/tina.css" rel="stylesheet" />
-    <script src="../javaex/pc/lib/jquery-1.7.2.min.js"></script>
-    <script src="../javaex/pc/js/javaex.min.js"></script>
+    <link href="../../javaex/pc/css/common.css" rel="stylesheet" />
+    <link href="../../javaex/pc/css/skin/tina.css" rel="stylesheet" />
+    <script src="../../javaex/pc/lib/jquery-1.7.2.min.js"></script>
+    <script src="../../javaex/pc/js/javaex.min.js"></script>
     <title>我的推荐历史</title>
     <style>
         body{background:#f5f7fa;padding:12px;}
@@ -16,23 +16,37 @@
         .name{font-weight:700;color:#303133;}
         .sub{font-size:12px;color:#909399;margin-top:4px;}
         .tag{font-size:12px;color:#409eff;margin-left:8px;}
+        .empty-hint{color:#909399;font-size:13px;line-height:2;}
+        .empty-hint a{color:#1890ff;text-decoration:none;}
     </style>
 </head>
 <body>
 <div class="card">
     <h2>我的推荐历史</h2>
-    <div class="sub">展示 recommendation 表的明细，便于你演示“推荐落库可追溯”。</div>
+    <div class="sub" style="margin-bottom:12px;">展示 recommendation 表的明细，便于你演示"推荐落库可追溯"。</div>
     <div id="list">加载中...</div>
 </div>
 <script>
+    function normalizeCover(cover){
+        if(!cover) return '../../javaex/img/1.jpg';
+        if (cover.indexOf("/") !== 0 && cover.indexOf("http") !== 0 && cover.indexOf("..") !== 0) {
+            return "/" + cover;
+        }
+        return cover;
+    }
+
     $(function(){
         $.get('/recommend/history?limit=100', function(res){
             if(res.code!==200){ $('#list').html(res.msg||'加载失败'); return; }
             var list = res.data || [];
-            if(list.length===0){ $('#list').html('暂无推荐历史，请先去“智能好书推荐”生成一次。'); return; }
+            if(list.length===0){
+                $('#list').html('<div class="empty-hint">暂无推荐历史。<br/>请先去 <a href="javascript:;" onclick="parent.page(\'/recommend.html\')">智能好书推荐</a> 生成一次推荐。</div>');
+                return;
+            }
             var html='';
             $.each(list, function(_, r){
-                var cover = r.cover ? ('<img class="cover" src="'+r.cover+'"/>') : '<div class="cover"></div>';
+                var coverUrl = normalizeCover(r.cover);
+                var cover = '<img class="cover" src="'+coverUrl+'"/>';
                 html += '<div class="book">'+cover+'<div class="meta">';
                 html += '<div class="name">'+(r.bookName||('bookId='+r.bookId))+
                         '<span class="tag">'+(r.source||'')+'</span></div>';
