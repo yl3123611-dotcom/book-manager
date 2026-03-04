@@ -14,6 +14,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -99,7 +100,9 @@ public class SeatController {
     @ResponseBody
     @PostMapping("/reserve")
     @org.springframework.transaction.annotation.Transactional
-    public R reserve(@RequestParam Integer seatId) {
+    public R reserve(@RequestParam Integer seatId,
+                     @RequestParam(required = false) String slotStart,
+                     @RequestParam(required = false) String slotEnd) {
         // 1. 获取当前登录用户
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (!(principal instanceof UserDetails)) {
@@ -109,6 +112,23 @@ public class SeatController {
         Users user = userService.findByUsername(username);
         if (user == null) {
             return R.failMsg("用户信息不存在，请重新登录");
+        }
+
+        // 兼容支持：当携带 slotStart/slotEnd 时，走按时段预约逻辑
+        boolean hasSlotStart = StringUtils.hasText(slotStart);
+        boolean hasSlotEnd = StringUtils.hasText(slotEnd);
+        if (hasSlotStart || hasSlotEnd) {
+            if (!hasSlotStart || !hasSlotEnd) {
+                return R.paramError("请同时传入开始时间和结束时间");
+            }
+            try {
+                java.util.Date start = parseDateTime(slotStart);
+                java.util.Date end = parseDateTime(slotEnd);
+                String err = seatReservationService.reserveSlot(username, seatId, start, end);
+                return err == null ? R.successMsg("预约成功") : R.failMsg(err);
+            } catch (Exception e) {
+                return R.paramError("时间格式错误，示例：2026-03-04 09:00:00");
+            }
         }
 
         // 2. 一人一座：检查用户是否已有未结束预约
@@ -198,8 +218,8 @@ public class SeatController {
         String username = ((UserDetails) principal).getUsername();
 
         try {
-            java.util.Date start = cn.hutool.core.date.DateUtil.parse(slotStart, "yyyy-MM-dd HH:mm:ss");
-            java.util.Date end = cn.hutool.core.date.DateUtil.parse(slotEnd, "yyyy-MM-dd HH:mm:ss");
+            java.util.Date start = parseDateTime(slotStart);
+            java.util.Date end = parseDateTime(slotEnd);
             String err = seatReservationService.reserveSlot(username, seatId, start, end);
             return err == null ? R.successMsg("预约成功") : R.failMsg(err);
         } catch (Exception e) {
@@ -437,5 +457,14 @@ public class SeatController {
         room.setEnabled(room.getEnabled() == 1 ? 0 : 1);
         seatMapper.updateRoom(room);
         return R.successMsg(room.getEnabled() == 1 ? "已启用" : "已禁用");
+    }
+
+    private java.util.Date parseDateTime(String raw) {
+        String text = raw == null ? "" : raw.trim();
+        text = text.replace("T", " ");
+        if (text.length() == 16) {
+            text = text + ":00";
+        }
+        return cn.hutool.core.date.DateUtil.parse(text, "yyyy-MM-dd HH:mm:ss");
     }
 }

@@ -18,12 +18,18 @@ public interface SeatReservationSlotQuotaMapper {
                                   @Param("slotEnd") Date slotEnd,
                                   @Param("room") String room);
 
+    @Select("SELECT * FROM seat_reservation_slot_quota WHERE id=#{id} LIMIT 1")
+    SeatReservationSlotQuota findById(@Param("id") Long id);
+
     @Insert("INSERT INTO seat_reservation_slot_quota (slot_date, slot_start, slot_end, room, reserved_count, max_count) VALUES (#{slotDate}, #{slotStart}, #{slotEnd}, #{room}, #{reservedCount}, #{maxCount})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(SeatReservationSlotQuota q);
 
     @Update("UPDATE seat_reservation_slot_quota SET reserved_count=#{reservedCount}, max_count=#{maxCount} WHERE id=#{id}")
     int update(SeatReservationSlotQuota q);
+
+    @Update("UPDATE seat_reservation_slot_quota SET slot_date=#{slotDate}, slot_start=#{slotStart}, slot_end=#{slotEnd}, room=#{room}, reserved_count=#{reservedCount}, max_count=#{maxCount} WHERE id=#{id}")
+    int updateById(SeatReservationSlotQuota q);
 
     @Update("UPDATE seat_reservation_slot_quota SET reserved_count=#{reservedCount} WHERE id=#{id}")
     int updateReservedCount(SeatReservationSlotQuota q);

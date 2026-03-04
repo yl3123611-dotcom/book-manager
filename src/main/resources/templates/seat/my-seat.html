@@ -99,6 +99,7 @@
           <th>序号</th>
           <th>阅览室</th>
           <th>座位号</th>
+          <th>预约类型</th>
           <th>开始时间</th>
           <th>结束时间</th>
           <th>状态</th>
@@ -110,6 +111,10 @@
           <td th:text="${stat.count}">1</td>
           <td th:text="${item.room}">1号阅览室</td>
           <td th:text="${item.seatNo}" style="font-weight: bold; color: #303133;">A-001</td>
+          <td>
+            <span th:if="${item.slotStart != null}" class="status-badge status-pending">时段预约</span>
+            <span th:if="${item.slotStart == null}" class="status-badge status-using">即时预约</span>
+          </td>
           <td th:text="${item.slotStart != null} ? ${#dates.format(item.slotStart, 'yyyy-MM-dd HH:mm')} : (${item.startTime != null} ? ${#dates.format(item.startTime, 'yyyy-MM-dd HH:mm')} : '-')"></td>
           <td th:text="${item.slotEnd != null} ? ${#dates.format(item.slotEnd, 'yyyy-MM-dd HH:mm')} : (${item.endTime != null} ? ${#dates.format(item.endTime, 'yyyy-MM-dd HH:mm')} : '-')"></td>
           <td>
@@ -123,20 +128,20 @@
             <button th:if="${item.slotStart != null and (item.status == 1 or item.status == 2 or item.status == 3)}"
                     class="btn-danger"
                     th:onclick="'cancelSlot(' + ${item.id} + ')'">
-              <i class="icon-close"></i> 取消
+              <i class="icon-close"></i> 取消预约
             </button>
 
             <button th:if="${item.slotStart == null and (item.status == 1 or item.status == 2 or item.status == 3)}"
                     class="btn-danger"
                     th:onclick="'leaveSeat(' + ${item.seatId} + ')'">
-              <i class="icon-logout"></i> 签退
+              <i class="icon-logout"></i> 签退离座
             </button>
 
             <span th:if="${(item.slotStart != null and item.status != 1 and item.status != 2 and item.status != 3) or (item.slotStart == null and item.status != 1 and item.status != 2 and item.status != 3)}" style="color: #ccc;">-</span>
           </td>
         </tr>
         <tr th:if="${#lists.isEmpty(list)}">
-          <td colspan="7" style="padding: 40px; text-align: center; color: #909399;">
+          <td colspan="8" style="padding: 40px; text-align: center; color: #909399;">
             暂无预约记录，快去预约一个吧！
           </td>
         </tr>

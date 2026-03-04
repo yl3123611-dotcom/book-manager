@@ -108,12 +108,22 @@
         .empty-state i { font-size: 64px; color: #dcdfe6; margin-bottom: 20px; }
         .empty-state p { font-size: 16px; margin-bottom: 10px; }
 
-        .manual-time { display: none; }
-
         .filter-label {
             font-size: 13px;
             color: #606266;
             margin-right: 4px;
+        }
+
+        .slot-line {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .slot-line.active { display: flex; }
+        .help-text {
+            color: #909399;
+            font-size: 12px;
         }
     </style>
 </head>
@@ -137,17 +147,38 @@
                     <label for="seatKeyword" class="filter-label">座位号</label>
                     <input id="seatKeyword" class="text" placeholder="请输入座位号关键字" style="width:160px;height:36px;" />
 
+                    <label for="bookingMode" class="filter-label">预约方式</label>
+                    <select id="bookingMode" class="select" style="width: 160px; height: 36px;">
+                        <option value="slot">推荐时段预约</option>
+                        <option value="custom">自定义时间预约</option>
+                        <option value="instant">立即预约（到馆即坐）</option>
+                    </select>
+
                     <label for="slotDate" class="filter-label">预约日期</label>
                     <input id="slotDate" type="date" class="text" style="width:170px;height:36px;" />
 
-                    <label for="slotSelect" class="filter-label">预约时段</label>
-                    <select id="slotSelect" class="select" style="width: 240px; height: 36px;">
-                        <option value="">请选择已配置时段（可选）</option>
-                    </select>
-                    <span id="slotHint" style="color:#f56c6c;font-size:12px;display:none;">当前日期该阅览室未配置配额时段，将按“立即预约”处理</span>
+                    <div id="slotModeLine" class="slot-line active">
+                        <label for="slotSelect" class="filter-label">可选时段</label>
+                        <select id="slotSelect" class="select" style="width: 280px; height: 36px;">
+                            <option value="">请选择已配置时段</option>
+                        </select>
+                        <span id="slotHint" class="help-text" style="display:none;color:#f56c6c;">该日期暂无配额时段，请改用自定义预约或更换日期</span>
+                    </div>
 
-                    <input id="slotStart" class="text manual-time" placeholder="开始(YYYY-MM-DD HH:mm:ss)" style="width:220px;height:36px;" />
-                    <input id="slotEnd" class="text manual-time" placeholder="结束(YYYY-MM-DD HH:mm:ss)" style="width:220px;height:36px;" />
+                    <div id="customModeLine" class="slot-line">
+                        <label for="slotStartPicker" class="filter-label">开始时间</label>
+                        <input id="slotStartPicker" type="datetime-local" class="text" style="width:220px;height:36px;" />
+                        <label for="slotEndPicker" class="filter-label">结束时间</label>
+                        <input id="slotEndPicker" type="datetime-local" class="text" style="width:220px;height:36px;" />
+                        <span class="help-text">请在日历中选择时间，最短时长受系统规则限制</span>
+                    </div>
+
+                    <div id="instantModeLine" class="slot-line">
+                        <span class="help-text">立即预约会按当前时刻开始，入座后可在“我的预约”中签退</span>
+                    </div>
+
+                    <input id="slotStart" type="hidden" />
+                    <input id="slotEnd" type="hidden" />
 
                     <button class="btn-search" onclick="filterSeats()"><i class="icon-search"></i> 筛选</button>
                 </div>
@@ -213,9 +244,42 @@
         $('#slotDate').attr('min', today);
         $('#slotDate').val(today);
 
+        initCustomPickers(now);
+        syncModeUI();
         loadQuotaSlots();
         updateSeatStats();
     });
+
+    function initCustomPickers(now){
+        var start = new Date(now.getTime() + 60 * 60 * 1000);
+        var end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
+        $('#slotStartPicker').val(toDateTimeLocal(start));
+        $('#slotEndPicker').val(toDateTimeLocal(end));
+    }
+
+    function toDateTimeLocal(d){
+        if (!(d instanceof Date) || isNaN(d.getTime())) return '';
+        var y = d.getFullYear();
+        var m = String(d.getMonth()+1).padStart(2,'0');
+        var day = String(d.getDate()).padStart(2,'0');
+        var h = String(d.getHours()).padStart(2,'0');
+        var min = String(d.getMinutes()).padStart(2,'0');
+        return y + '-' + m + '-' + day + 'T' + h + ':' + min;
+    }
+
+    function syncModeUI(){
+        var mode = $('#bookingMode').val() || 'slot';
+        $('#slotModeLine').removeClass('active');
+        $('#customModeLine').removeClass('active');
+        $('#instantModeLine').removeClass('active');
+        if (mode === 'custom') {
+            $('#customModeLine').addClass('active');
+        } else if (mode === 'instant') {
+            $('#instantModeLine').addClass('active');
+        } else {
+            $('#slotModeLine').addClass('active');
+        }
+    }
 
     function updateSeatStats() {
         var $all = $('.seat-item');
@@ -226,8 +290,8 @@
     }
 
     function filterSeats() {
-        var room = ($("#roomSelect").val() || '').toLowerCase();
-        var keyword = ($("#seatKeyword").val() || '').toLowerCase();
+        var room = ($('#roomSelect').val() || '').toLowerCase();
+        var keyword = ($('#seatKeyword').val() || '').toLowerCase();
 
         $('.seat-item').each(function(){
             var $item = $(this);
@@ -245,55 +309,98 @@
     function reserveSeat(id) {
         targetSeatId = id;
 
-        var slot = $('#slotSelect').val();
-        var start = $('#slotStart').val();
-        var end = $('#slotEnd').val();
-
-        if(!slot){
-            javaex.confirm({ content : "确定立即预约该座位？", callback : "realReserve()" });
+        var payload = buildReservePayload(id);
+        if (payload.error) {
+            javaex.optTip({ content : payload.error, type : 'error' });
             return;
         }
 
-        if(!start || !end){
-            javaex.optTip({ content : '请选择一个已配置时段', type : 'error' });
-            return;
+        javaex.confirm({ content : payload.confirmText, callback : 'realReserve()' });
+    }
+
+    function buildReservePayload(seatId){
+        var mode = $('#bookingMode').val() || 'slot';
+        var payload = { seatId: seatId };
+
+        if (mode === 'instant') {
+            return {
+                data: payload,
+                confirmText: '确定立即预约该座位吗？\\n系统将按当前时间开始记录。'
+            };
         }
 
-        javaex.confirm({ content : "确定预约该座位？\n" + start + " ~ " + end, callback : "realReserve()" });
+        if (mode === 'slot') {
+            var value = $('#slotSelect').val();
+            if (!value) {
+                return { error: '请先选择一个推荐时段' };
+            }
+            var arr = value.split('|');
+            if (arr.length !== 2) {
+                return { error: '时段数据异常，请重新选择' };
+            }
+            var left = Number($('#slotSelect option:selected').attr('data-left'));
+            if (!isNaN(left) && left <= 0) {
+                return { error: '该时段已满，请选择其他时段' };
+            }
+            payload.slotStart = arr[0];
+            payload.slotEnd = arr[1];
+            return {
+                data: payload,
+                confirmText: '确定预约该座位？\\n预约时段：' + payload.slotStart + ' ~ ' + payload.slotEnd
+            };
+        }
+
+        var start = normalizeLocalPicker($('#slotStartPicker').val());
+        var end = normalizeLocalPicker($('#slotEndPicker').val());
+        if (!start || !end) {
+            return { error: '请在日历中选择开始和结束时间' };
+        }
+        if (start >= end) {
+            return { error: '结束时间必须晚于开始时间' };
+        }
+        payload.slotStart = start;
+        payload.slotEnd = end;
+        return {
+            data: payload,
+            confirmText: '确定预约该座位？\\n预约时段：' + start + ' ~ ' + end
+        };
+    }
+
+    function normalizeLocalPicker(localValue){
+        if (!localValue) return '';
+        var text = String(localValue).trim();
+        if (text.indexOf('T') > -1) {
+            text = text.replace('T', ' ');
+        }
+        if (text.length === 16) {
+            text += ':00';
+        }
+        return text;
     }
 
     function realReserve() {
         if (!targetSeatId || submitting) return;
-        submitting = true;
 
-        var slot = $('#slotSelect').val();
-        var start = $('#slotStart').val();
-        var end = $('#slotEnd').val();
-
-        var done = function(){ submitting = false; };
-
-        if(!slot){
-            $.post('/seat/reserve', { seatId: targetSeatId }, function(res) {
-                if (res.code == '200') {
-                    javaex.optTip({ content : res.msg || '预约成功', type : 'success' });
-                    setTimeout(function() { window.location.reload(); }, 1200);
-                } else {
-                    javaex.optTip({ content : res.msg || '预约失败', type : 'error' });
-                }
-                done();
-            }).error(done);
+        var result = buildReservePayload(targetSeatId);
+        if (!result || !result.data) {
+            if (result && result.error) {
+                javaex.optTip({ content : result.error, type : 'error' });
+            }
             return;
         }
 
-        $.post('/seat/reserveSlot', { seatId: targetSeatId, slotStart: start, slotEnd: end }, function(res) {
+        submitting = true;
+        $.post('/seat/reserve', result.data, function(res) {
             if (res.code == '200') {
                 javaex.optTip({ content : res.msg || '预约成功', type : 'success' });
                 setTimeout(function() { window.location.reload(); }, 1200);
             } else {
                 javaex.optTip({ content : res.msg || '预约失败', type : 'error' });
             }
-            done();
-        }).error(done);
+            submitting = false;
+        }).error(function(){
+            submitting = false;
+        });
     }
 
     function normalizeDateTime(input){
@@ -313,6 +420,9 @@
         if (str.length >= 19) {
             return str.substring(0, 19);
         }
+        if (str.length === 16) {
+            return str + ':00';
+        }
         return str;
     }
 
@@ -331,17 +441,15 @@
         var room = $('#roomSelect').val();
         var date = $('#slotDate').val();
         $('#slotHint').hide();
+
         if(!room || !date){
-            $('#slotSelect').html('<option value="">请选择已配置时段（可选）</option>');
-            $('#slotStart').val('');
-            $('#slotEnd').val('');
+            $('#slotSelect').html('<option value="">请选择已配置时段</option>');
             return;
         }
+
         $.get('/seat/quotaSlots', {room: room, date: date}, function(res){
             if(res.code !== 200){
-                $('#slotSelect').html('<option value="">请选择已配置时段（可选）</option>');
-                $('#slotStart').val('');
-                $('#slotEnd').val('');
+                $('#slotSelect').html('<option value="">请选择已配置时段</option>');
                 return;
             }
             var list = res.data || [];
@@ -353,45 +461,32 @@
                 return 0;
             });
 
-            var html = '<option value="">请选择已配置时段（可选）</option>';
+            var html = '<option value="">请选择已配置时段</option>';
             if(list.length === 0){
                 $('#slotHint').show();
             }
+
             $.each(list, function(_, q){
                 var start = normalizeDateTime(q.slotStart);
                 var end = normalizeDateTime(q.slotEnd);
                 var left = Number(q.maxCount) - Number(q.reservedCount);
                 if(isNaN(left)) left = '';
                 if(left !== '' && left < 0) left = 0;
-                var text = start + ' ~ ' + end + (left !== '' ? (' (剩余' + left + ')') : '');
+                var statusText = left === '' ? '' : (left > 0 ? ('剩余' + left) : '已满');
+                var text = start + ' ~ ' + end + (statusText ? ('（' + statusText + '）') : '');
                 var value = start.replace(/"/g,'&quot;') + '|' + end.replace(/"/g,'&quot;');
-                html += '<option value="'+ value +'">'+ text +'</option>';
+                var disabled = (left === 0 ? ' disabled' : '');
+                html += '<option value="' + value + '" data-left="' + left + '"' + disabled + '>' + text + '</option>';
             });
+
             $('#slotSelect').html(html);
-            if(!$('#slotSelect').val()){
-                $('#slotStart').val('');
-                $('#slotEnd').val('');
-            }
         });
     }
 
     $('#roomSelect').on('change', filterSeats);
     $('#seatKeyword').on('input', filterSeats);
     $('#slotDate').on('change', loadQuotaSlots);
-
-    $('#slotSelect').on('change', function(){
-        var v = $(this).val();
-        if(!v){
-            $('#slotStart').val('');
-            $('#slotEnd').val('');
-            return;
-        }
-        var arr = v.split('|');
-        if(arr.length === 2){
-            $('#slotStart').val(arr[0]);
-            $('#slotEnd').val(arr[1]);
-        }
-    });
+    $('#bookingMode').on('change', syncModeUI);
 </script>
 </body>
 </html>
