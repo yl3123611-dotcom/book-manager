@@ -11,7 +11,7 @@
     </select>
 
     <select id="listTopicBooks" resultType="map">
-        SELECT b.id, b.name, b.author, b.cover, b.publish, b.size
+        SELECT b.id, tb.book_id AS bookId, b.name, b.author, b.cover, b.publish, b.size
         FROM special_topic_book tb
         LEFT JOIN book b ON b.id = tb.book_id
         WHERE tb.topic_id = #{topicId}
@@ -37,5 +37,64 @@
     <delete id="removeTopicBook">
         DELETE FROM special_topic_book WHERE topic_id = #{topicId} AND book_id = #{bookId}
     </delete>
+
+    <insert id="addTopicBookFavorite">
+        INSERT IGNORE INTO topic_book_favorite(topic_id, book_id, user_id, created_at)
+        VALUES(#{topicId}, #{bookId}, #{userId}, NOW())
+    </insert>
+
+    <delete id="removeTopicBookFavorite">
+        DELETE FROM topic_book_favorite WHERE topic_id = #{topicId} AND book_id = #{bookId} AND user_id = #{userId}
+    </delete>
+
+    <select id="existsTopicBookFavorite" resultType="int">
+        SELECT COUNT(1) FROM topic_book_favorite WHERE topic_id = #{topicId} AND book_id = #{bookId} AND user_id = #{userId}
+    </select>
+
+    <insert id="addShareLog">
+        INSERT INTO topic_share_log(topic_id, book_id, user_id, share_channel, share_content, created_at)
+        VALUES(#{topicId}, #{bookId}, #{userId}, #{shareChannel}, #{shareContent}, NOW())
+    </insert>
+
+    <select id="relatedTopics" resultType="map">
+        SELECT DISTINCT t.id,
+               t.slug,
+               t.name,
+               t.description,
+               COUNT(tb2.book_id) AS overlapCount
+        FROM special_topic_book tb1
+        INNER JOIN special_topic_book tb2 ON tb1.book_id = tb2.book_id
+        INNER JOIN special_topic t ON t.id = tb2.topic_id
+        WHERE tb1.topic_id = #{topicId}
+          AND tb2.topic_id != #{topicId}
+          AND t.enabled = 1
+          <if test="bookId != null">
+              AND tb1.book_id = #{bookId}
+          </if>
+        GROUP BY t.id, t.slug, t.name, t.description
+        ORDER BY overlapCount DESC, t.id DESC
+        LIMIT 8
+    </select>
+
+    <select id="topicStats" resultType="map">
+        SELECT t.id AS topicId,
+               t.slug,
+               t.name,
+               COUNT(DISTINCT tb.book_id) AS bookCount,
+               COUNT(DISTINCT f.user_id) AS favoriteUsers,
+               COUNT(DISTINCT CONCAT(f.user_id, '_', f.book_id)) AS favoriteActions,
+               COUNT(s.id) AS shareCount,
+               DATE_FORMAT(MAX(s.created_at), '%Y-%m-%d %H:%i:%s') AS lastShareAt
+        FROM special_topic t
+        LEFT JOIN special_topic_book tb ON tb.topic_id = t.id
+        LEFT JOIN topic_book_favorite f ON f.topic_id = t.id
+        LEFT JOIN topic_share_log s ON s.topic_id = t.id
+        WHERE t.enabled = 1
+        <if test="topicId != null">
+            AND t.id = #{topicId}
+        </if>
+        GROUP BY t.id, t.slug, t.name
+        ORDER BY t.id DESC
+    </select>
 
 </mapper>

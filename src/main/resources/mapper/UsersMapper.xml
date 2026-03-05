@@ -35,6 +35,20 @@
         </where>
     </select>
 
+    <select id="findReadersByLike" resultMap="BaseResultMap">
+        select * from users
+        <where>
+            is_admin = 1
+            <if test="_parameter != null and _parameter != ''">
+                and (
+                `username` like CONCAT('%', #{_parameter}, '%')
+                or `nickname` like CONCAT('%', #{_parameter}, '%')
+                )
+            </if>
+        </where>
+        order by id desc
+    </select>
+
     <!-- 关键修复：
          1) id 改成 updateUsers（要和 UsersMapper.java 里的方法名一致）
          2) parameterType 改成 map（前端/Service 传的是 Map）

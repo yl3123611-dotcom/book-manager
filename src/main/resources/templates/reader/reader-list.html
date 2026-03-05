@@ -19,13 +19,15 @@
         .block-title { font-size: 18px; font-weight: 600; color: #333; display: flex; align-items: center; }
         .block-title::before { content: ''; display: inline-block; width: 4px; height: 18px; background: #1890ff; margin-right: 8px; border-radius: 2px; }
 
-        .admin-search { display: flex; gap: 10px; align-items: center; }
-        .admin-search input { width: 250px; }
+        .toolbar { display: flex; gap: 10px; align-items: center; }
+        .toolbar input { width: 240px; }
+        .badge { color: #52c41a; background:#f6ffed; border:1px solid #b7eb8f; border-radius:4px; padding:2px 8px; }
 
         .table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         .table thead th { background-color: #fafafa; color: #595959; font-weight: 600; border-bottom: 1px solid #f0f0f0; height: 54px; }
         .table tbody td { color: #666; border-bottom: 1px solid #f0f0f0; height: 54px; }
         .table tbody tr:hover { background-color: #fafafa; }
+        .empty-row { text-align:center; color:#999; padding:30px 0; }
 
         .action-btn { margin-right: 8px; font-size: 12px; padding: 0 8px; height: 24px; line-height: 22px; }
     </style>
@@ -33,10 +35,11 @@
 <body class="module-theme">
 <div class="block">
     <div class="block-header">
-        <div class="block-title">读者列表</div>
-        <div class="admin-search">
-            <input id="keyword" type="text" class="text" placeholder="搜索用户名或者昵称" />
+        <div class="block-title">读者管理</div>
+        <div class="toolbar">
+            <input id="keyword" type="text" class="text" placeholder="搜索用户名或昵称" />
             <button id="searchBtn" class="button blue" onclick="search()"><span class="icon-search"></span> 搜索</button>
+            <button class="button green" onclick="toAdd()"><span class="icon-plus"></span> 新增读者</button>
         </div>
     </div>
 
@@ -67,33 +70,53 @@
 
 <script>
     $(document).ready(function(){
-        rander(1, "", 10);
+        render(1, "", 10);
+        $("#keyword").keydown(function(e){
+            if(e.keyCode === 13){
+                search();
+            }
+        });
     });
 
-    function rander(currPage, keyword, pageSize) {
+    function render(currPage, keyword, pageSize) {
         $.ajax({
             type : "POST",
             contentType: "application/json;charset=UTF-8",
-            url : "/user/list",
+            url : "/user/readerList",
             data : JSON.stringify({"currPage":currPage,"keyword":keyword,"pageSize":pageSize}),
             success : function(result) {
+                if (!result || result.code !== 200 || !result.data) {
+                    javaex.message({ content : (result && result.msg) || "读者列表加载失败", type : "error" });
+                    return;
+                }
+
                 var r = result.data;
-                var total = r.total;
-                var current = r.currPage;
-                var size = r.pageSize;
-                var array = r.list;
+                var total = r.total || 0;
+                var current = r.currPage || 1;
+                var size = r.pageSize || 10;
+                var array = r.list || [];
                 var text = "";
-                $.each(array, function(index, value){
-                    var num = size * (current - 1) + index + 1;
-                    var identTag = value.ident == "管理员" ? "<span style='color:#ff4d4f; font-weight:bold;'>管理员</span>" : "<span style='color:#52c41a; background:#f6ffed; padding:2px 8px; border:1px solid #b7eb8f; border-radius:4px;'>读者</span>";
-                    text += "<tr><td style='text-align:center;'>"+num+"</td><td><b style='color:#333;'>"+value.nickname+"</b></td><td>"+value.username+"</td><td>"+value.birth+"</td>"
-                        + "<td>"+value.tel+"</td><td>"+value.email+"</td><td>"+value.address+"</td><td><span class='badge'>"+value.size+"</span></td>"
-                        + "<td>"+identTag+"</td><td style='text-align:center;'>"
-                        + "<button class='button blue empty action-btn' onclick='updateBook("+value.id+")'>编辑</button> <button class='button red empty action-btn' onclick='delBook("+value.id+")'>删除</button></td></tr>";
-                });
+
+                if (array.length === 0) {
+                    text = "<tr><td colspan='10' class='empty-row'>暂无读者数据</td></tr>";
+                } else {
+                    $.each(array, function(index, value){
+                        var num = size * (current - 1) + index + 1;
+                        var identText = value.ident || "学生";
+                        text += "<tr><td style='text-align:center;'>"+num+"</td><td><b style='color:#333;'>"+(value.nickname || '-')+"</b></td><td>"+(value.username || '-')+"</td><td>"+(value.birth || '-')+"</td>"
+                            + "<td>"+(value.tel || '-')+"</td><td>"+(value.email || '-')+"</td><td>"+(value.address || '-')+"</td><td><span class='badge'>"+(value.size || 0)+"</span></td>"
+                            + "<td>"+identText+"</td><td style='text-align:center;'>"
+                            + "<button class='button blue action-btn' onclick='updateReader("+value.id+")'>编辑</button> <button class='button red empty action-btn' onclick='delReader("+value.id+")'>删除</button></td></tr>";
+                    });
+                }
                 $("#tbody").html(text);
 
                 var totalPage = Math.ceil(total / size);
+                if (totalPage <= 0) {
+                    $("#page").empty();
+                    return;
+                }
+
                 $("#page").empty();
                 javaex.page({
                     id : "page",
@@ -104,34 +127,43 @@
                     totalNum : total,
                     position : "right",
                     callback : function(rtn) {
-                        rander(rtn.pageNum, keyword, rtn.perPageCount);
+                        render(rtn.pageNum, keyword, rtn.perPageCount);
                     }
                 });
             },
             error : function(e){
-                console.log(e.status);
+                javaex.message({ content : "网络异常: " + e.status, type : "error" });
             }
         });
     }
 
     function search() {
-        var keyword = $("#keyword").val();
-        rander(1, keyword, 10);
+        var keyword = $.trim($("#keyword").val());
+        render(1, keyword, 10);
     }
-    function updateBook(id) {
+
+    function toAdd() {
+        window.location.href = "/reader/reader-add";
+    }
+
+    function updateReader(id) {
         window.location.href = "/reader/reader-update?id=" + id;
     }
-    function delBook(id) {
+
+    function delReader(id) {
         javaex.confirm({
-            content : "确定要删除该用户吗？",
+            content : "确定要删除该读者吗？",
             callback : "delCallback("+id+")"
         });
     }
+
     function delCallback(id) {
         $.get("/user/delete", {"id": id}, function(data){
             if (data.code == 200) {
                 javaex.message({ content : "删除成功", type : "success" });
-                setTimeout(function(){ window.location.reload(); }, 1000);
+                setTimeout(function(){ render(1, $.trim($("#keyword").val()), 10); }, 800);
+            } else {
+                javaex.message({ content : data.msg || "删除失败", type : "error" });
             }
         });
     }

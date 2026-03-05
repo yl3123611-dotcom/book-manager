@@ -11,7 +11,9 @@ public interface ForumReplyMapper {
 
     int insertReply(@Param("postId") Long postId,
                     @Param("userId") Integer userId,
-                    @Param("content") String content);
+                    @Param("content") String content,
+                    @Param("parentId") Long parentId,
+                    @Param("rootId") Long rootId);
 
     List<Map<String, Object>> listByPost(@Param("postId") Long postId);
 
@@ -20,4 +22,6 @@ public interface ForumReplyMapper {
     Map<String,Object> selectById(@Param("id") Long id);
 
     int countVisibleByPost(@Param("postId") Long postId);
+
+    int existsReplyInPost(@Param("postId") Long postId, @Param("replyId") Long replyId);
 }

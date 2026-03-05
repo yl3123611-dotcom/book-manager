@@ -11,9 +11,11 @@ public interface ForumPostMapper {
 
     int insertPost(@Param("userId") Integer userId,
                    @Param("title") String title,
-                   @Param("content") String content);
+                   @Param("content") String content,
+                   @Param("category") String category);
 
-    List<Map<String, Object>> listPosts(@Param("keyword") String keyword);
+    List<Map<String, Object>> listPosts(@Param("keyword") String keyword,
+                                        @Param("category") String category);
 
     Map<String, Object> selectById(@Param("id") Long id);
 
@@ -38,4 +40,36 @@ public interface ForumPostMapper {
 
     /** 加精/取消加精 */
     int updateFeatured(@Param("id") Long id, @Param("isFeatured") Integer isFeatured);
+
+    int addFavorite(@Param("postId") Long postId, @Param("userId") Integer userId);
+
+    int removeFavorite(@Param("postId") Long postId, @Param("userId") Integer userId);
+
+    int existsFavorite(@Param("postId") Long postId, @Param("userId") Integer userId);
+
+    int updateAcceptedReply(@Param("postId") Long postId, @Param("replyId") Long replyId, @Param("userId") Integer userId);
+
+    int updateMyPost(@Param("id") Long id,
+                     @Param("userId") Integer userId,
+                     @Param("title") String title,
+                     @Param("content") String content,
+                     @Param("category") String category);
+
+    int deleteMyPost(@Param("id") Long id, @Param("userId") Integer userId);
+
+    int insertReport(@Param("postId") Long postId,
+                     @Param("userId") Integer userId,
+                     @Param("reason") String reason);
+
+    List<Map<String, Object>> listReports(@Param("status") Integer status,
+                                          @Param("keyword") String keyword);
+
+    int handleReport(@Param("id") Long id,
+                     @Param("status") Integer status,
+                     @Param("handleNote") String handleNote,
+                     @Param("handledBy") Integer handledBy);
+
+    List<Map<String, Object>> listMyPosts(@Param("userId") Integer userId, @Param("keyword") String keyword);
+
+    List<Map<String, Object>> listMyFavorites(@Param("userId") Integer userId, @Param("keyword") String keyword);
 }

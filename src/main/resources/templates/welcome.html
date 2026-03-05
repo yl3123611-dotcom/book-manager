@@ -289,6 +289,15 @@
         }
     }
 
+    function resolveBookId(book){
+        if(!book) return null;
+        var id = book.id;
+        if(id === null || id === undefined || String(id).trim() === '') id = book.bookId;
+        if(id === null || id === undefined || String(id).trim() === '') id = book.ID;
+        if(id === null || id === undefined || String(id).trim() === '') id = book.book_id;
+        return (id === null || id === undefined || String(id).trim() === '') ? null : String(id).trim();
+    }
+
     function loadDangshiPreview(){
         setDangshiReloadLoading(true);
         $.get('/topic/api/dangshi-hongshu/books', function(res){
@@ -310,8 +319,10 @@
             var html = "";
             $.each(list, function(i, book){
                 var cover = normalizeCover(book.cover);
+                var id = resolveBookId(book);
+                var detailUrl = id ? ("/book/detail-view?id=" + encodeURIComponent(id)) : "";
                 html += `
-                    <div class="book-card" onclick="window.location.href='/book/detail-view?id=${book.id}'">
+                    <div class="book-card" ${detailUrl ? `data-detail-url="${detailUrl}"` : ''}>
                         <div class="card-img">
                             <img src="${cover}" alt="${book.name||''}" onerror="this.onerror=null;this.src='/javaex/img/1.jpg';">
                         </div>
@@ -323,6 +334,13 @@
                     </div>`;
             });
             $('#dangshiGrid').html(html);
+
+            $('#dangshiGrid .book-card[data-detail-url]').off('click').on('click', function(){
+                var url = $(this).attr('data-detail-url');
+                if(url){
+                    window.location.href = url;
+                }
+            });
         }).fail(function(){
             $('#dangshiGrid').html('');
             $('#dangshiEmpty').show();

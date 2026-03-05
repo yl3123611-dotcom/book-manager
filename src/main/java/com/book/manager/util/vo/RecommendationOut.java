@@ -15,4 +15,5 @@ public class RecommendationOut {
     private String author;
     private String type;
     private String cover;
+    private String introduction;
 }

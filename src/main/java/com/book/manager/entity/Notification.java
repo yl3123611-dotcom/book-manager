@@ -42,4 +42,22 @@ public class Notification {
 
     @Schema(description = "更新时间")
     private Date updatedAt;
+
+    @Schema(description = "发送方用户ID（用于回执统计）")
+    private Integer senderUserId;
+
+    @Schema(description = "已读时间")
+    private Date readAt;
+
+    @Schema(description = "签收时间")
+    private Date signedAt;
+
+    @Schema(description = "回复内容")
+    private String replyContent;
+
+    @Schema(description = "回复时间")
+    private Date repliedAt;
+
+    @Schema(description = "归档时间")
+    private Date archivedAt;
 }

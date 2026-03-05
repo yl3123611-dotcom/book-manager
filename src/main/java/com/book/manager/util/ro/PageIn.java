@@ -11,6 +11,10 @@ public class PageIn {
     @Schema(description = "搜索关键字")
     private String keyword;
 
+    /** 分类过滤（论坛） */
+    @Schema(description = "分类过滤（论坛）")
+    private String category;
+
     /** 当前页 */
     @Schema(description = "当前页", example = "1")
     private Integer currPage;

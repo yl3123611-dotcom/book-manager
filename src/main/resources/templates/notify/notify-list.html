@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
     <meta charset="utf-8">
     <link href="../javaex/pc/css/icomoon.css" rel="stylesheet" />
@@ -10,192 +10,709 @@
     <script src="../javaex/pc/lib/jquery-1.7.2.min.js"></script>
     <script src="../javaex/pc/js/common.js"></script>
     <script src="../javaex/pc/js/javaex.min.js"></script>
-    <title>我的通知</title>
+    <title>通知中心</title>
     <style>
-        body { background-color: #f0f2f5; padding: 20px; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; }
-        .block {
-            background: #fff;
-            padding: 24px;
-            border-radius: 8px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.06);
-            border: none;
-            min-height: 600px;
-        }
-        .block-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid #e8e8e8;
-        }
-        .block-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
-            display: flex;
-            align-items: center;
-        }
-        .block-title::before {
-            content: '';
-            display: inline-block;
-            width: 4px;
-            height: 18px;
-            background: #1890ff;
-            margin-right: 8px;
-            border-radius: 2px;
-        }
-        .filters {
-            display: flex;
-            gap: 16px;
-            align-items: center;
-        }
-        .badge {
-            display: inline-block;
-            background: #ff4d4f;
-            color: #fff;
-            border-radius: 10px;
-            padding: 0 8px;
-            font-size: 12px;
-            font-weight: normal;
-            margin-left: 8px;
-            line-height: 20px;
-        }
-        /* Table Styles */
-        .table { width: 100%; border-collapse: collapse; }
-        .table thead th {
-            background-color: #fafafa;
-            color: #595959;
-            font-weight: 600;
-            padding: 16px;
-            border-bottom: 1px solid #e8e8e8;
-            text-align: left;
-        }
-        .table tbody td {
-            padding: 16px;
-            border-bottom: 1px solid #e8e8e8;
-            color: #595959;
-        }
-        .table tbody tr:hover { background-color: #fafafa; }
+        body { background:#f5f7fb; padding:20px; }
+        .layout { display:flex; gap:16px; }
+        .side { width:220px; background:#fff; border-radius:10px; padding:12px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+        .main { flex:1; background:#fff; border-radius:10px; padding:14px 16px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+        .title { font-size:18px; font-weight:700; color:#303133; margin-bottom:10px; }
+        .cat { display:flex; justify-content:space-between; align-items:center; padding:9px 10px; border-radius:8px; color:#606266; cursor:pointer; }
+        .cat:hover { background:#f5f8ff; color:#3a6df0; }
+        .cat.active { background:#ecf3ff; color:#2b5fd9; font-weight:700; }
+        .cat .badge { background:#eef2ff; color:#3a6df0; border-radius:999px; padding:0 8px; font-size:12px; line-height:20px; }
+        .tools { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px; }
+        .text, .select, .date { height:34px; border:1px solid #dcdfe6; border-radius:6px; padding:0 10px; }
+        .text { width:220px; }
+        .batch { position:sticky; top:0; z-index:2; background:#f7faff; border:1px solid #dce8ff; border-radius:8px; padding:8px 10px; margin-bottom:10px; display:none; }
+        .batch b { color:#2b5fd9; }
+        .list { min-height:220px; }
+        .card { position:relative; display:flex; gap:10px; border:1px solid #e9edf5; border-radius:10px; padding:12px; margin-bottom:10px; background:#fff; transition:all .18s; }
+        .card.unread { border-left:4px solid #409eff; background:#f7fbff; }
+        .card.expired { opacity:.72; }
+        .card:hover { box-shadow:0 6px 18px rgba(57,86,146,.12); transform:translateY(-1px); }
+        .card .check { margin-top:4px; }
+        .icon { width:28px; text-align:center; font-size:18px; line-height:1.4; }
+        .body { flex:1; }
+        .head { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+        .head .name { font-size:15px; font-weight:700; color:#303133; cursor:pointer; }
+        .meta { color:#909399; font-size:12px; }
+        .content { color:#606266; line-height:1.7; margin-top:4px; word-break:break-word; }
+        .tag { font-size:12px; border-radius:999px; padding:2px 8px; border:1px solid; }
+        .tag.read { color:#67c23a; border-color:#b3e19d; background:#f0f9eb; }
+        .tag.unread { color:#409eff; border-color:#b3d8ff; background:#ecf5ff; }
+        .tag.archived { color:#909399; border-color:#dcdfe6; background:#f4f4f5; }
+        .tag.top { color:#cf1322; border-color:#ffa39e; background:#fff1f0; }
+        .tag.expired { color:#b71d11; border-color:#ffb7ad; background:#fff2ef; }
+        .actions { opacity:0; transition:opacity .18s; white-space:nowrap; }
+        .card:hover .actions { opacity:1; }
+        .actions .button { height:30px; line-height:28px; border-radius:6px; padding:0 8px; }
+        .empty { color:#909399; text-align:center; padding:48px 0; }
+        .foot-tools { margin-top:12px; color:#909399; }
 
-        /* Custom styles for notify content */
-        .content { max-width: 600px; line-height: 1.6; }
-        .notify-time { color: #8c8c8c; font-size: 13px; }
-
-        .breadcrumb { margin-bottom: 16px; color: #595959; }
-        .breadcrumb span { margin: 0 4px; }
-        .breadcrumb .active { color: #1890ff; font-weight: 500; }
-
-        /* Button overrides */
-        .button { border-radius: 4px; height: 32px; line-height: 30px; padding: 0 15px; }
-        .select { height: 32px; border-radius: 4px; border: 1px solid #d9d9d9; padding: 0 10px; }
+        /* Detail card modal */
+        .notify-modal-mask { position:fixed; left:0; right:0; top:0; bottom:0; background:rgba(20,31,51,.38); z-index:9998; display:none; }
+        .notify-modal { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); width:860px; max-width:calc(100vw - 28px); max-height:calc(100vh - 40px); overflow:auto; background:#fff; border-radius:14px; box-shadow:0 18px 45px rgba(13,33,73,.24); z-index:9999; display:none; }
+        .notify-modal-header { display:flex; justify-content:space-between; align-items:center; padding:14px 16px; border-bottom:1px solid #edf1f8; }
+        .notify-modal-title { font-size:17px; font-weight:700; color:#1f2d3d; }
+        .notify-modal-close { border:none; background:transparent; font-size:20px; cursor:pointer; color:#909399; }
+        .notify-modal-body { padding:14px 16px 16px; }
+        .notify-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 12px; margin-bottom:10px; }
+        .notify-cell { background:#f7faff; border:1px solid #e7efff; border-radius:8px; padding:8px 10px; font-size:13px; color:#606266; }
+        .notify-cell b { color:#2f3a4f; margin-right:6px; }
+        .notify-content-box { background:#fbfcff; border:1px solid #e9edf7; border-radius:8px; padding:10px; line-height:1.75; color:#374151; white-space:pre-wrap; word-break:break-word; margin-bottom:12px; }
+        .notify-sec-title { font-size:14px; font-weight:700; color:#2f3a4f; margin:12px 0 8px; }
+        .notify-receipt-wrap { border:1px solid #e9edf7; border-radius:8px; overflow:hidden; }
+        .notify-receipt-table { width:100%; border-collapse:collapse; font-size:13px; }
+        .notify-receipt-table th, .notify-receipt-table td { padding:8px 10px; border-bottom:1px solid #eef2f8; text-align:left; color:#4b5563; }
+        .notify-receipt-table th { background:#f7faff; color:#2f3a4f; }
+        .notify-receipt-empty { padding:10px; color:#909399; font-size:13px; }
+        .notify-reply-box textarea { width:100%; min-height:96px; border:1px solid #d8deea; border-radius:8px; resize:vertical; padding:10px; box-sizing:border-box; }
+        .notify-modal-footer { margin-top:10px; display:flex; justify-content:space-between; align-items:center; }
+        .notify-modal-status { color:#909399; font-size:12px; }
     </style>
 </head>
 <body class="module-theme">
-<div class="breadcrumb">
-    <span>通知中心</span>
-    <span>/</span>
-    <span class="active">我的通知</span>
-</div>
-
-<div class="block">
-    <div class="block-header">
-        <div class="block-title">
-            我的通知
-            <span id="unread" class="badge" style="display:none;">0</span>
-        </div>
-        <div class="filters">
-            <select id="status" class="select" onchange="loadList()">
-                <option value="">全部状态</option>
-                <option value="0">未读</option>
-                <option value="1">已读</option>
-            </select>
-            <button class="button blue" onclick="loadList()"><span class="icon-search" style="margin-right:4px;"></span>刷新</button>
-            <button class="button green" onclick="readAll()"><span class="icon-check" style="margin-right:4px;"></span>全部已读</button>
-        </div>
+<div class="layout">
+    <div class="side">
+        <div class="title">通知分类</div>
+        <div class="cat active" data-cat="all" onclick="switchCat('all')">全部通知 <span id="c-all" class="badge">0</span></div>
+        <div class="cat" data-cat="system" onclick="switchCat('system')">系统通知 <span id="c-system" class="badge">0</span></div>
+        <div class="cat" data-cat="personal" onclick="switchCat('personal')">个人通知 <span id="c-personal" class="badge">0</span></div>
+        <div class="cat" data-cat="unread" onclick="switchCat('unread')">未读 <span id="c-unread" class="badge">0</span></div>
+        <div class="cat" data-cat="read" onclick="switchCat('read')">已读 <span id="c-read" class="badge">0</span></div>
+        <div class="cat" data-cat="archived" onclick="switchCat('archived')">归档 <span id="c-archived" class="badge">0</span></div>
     </div>
 
-    <table class="table">
-        <thead>
-        <tr>
-            <th style="width:180px;">时间</th>
-            <th>通知内容</th>
-            <th>内容</th>
-            <th style="width:80px;">状态</th>
-            <th style="width:120px;">操作</th>
-        </tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-    </table>
+    <div class="main">
+        <div class="title">通知中心 <span id="unreadTop" class="badge" style="display:none;background:#ff4d4f;color:#fff;">0</span></div>
 
-    <div style="margin-top:10px;color:#999;">
-        管理员/调试：<button class="button yellow empty" onclick="gen()">生成借阅提醒</button>
+        <div class="tools">
+            <select id="typeFilter" class="select" onchange="renderRows()">
+                <option value="">全部类型</option>
+                <option value="SYSTEM">系统通知</option>
+                <option value="DUE_REMINDER">到期提醒</option>
+                <option value="OVERDUE_ALERT">逾期提醒</option>
+            </select>
+            <input id="keyword" class="text" placeholder="按标题/内容搜索" onkeyup="if(event.keyCode===13){renderRows();}" />
+            <input id="dateStart" class="date" type="date" onchange="renderRows()" />
+            <input id="dateEnd" class="date" type="date" onchange="renderRows()" />
+            <button class="button blue" onclick="loadList()">刷新</button>
+            <button class="button green" onclick="readAll()">全部设为已读</button>
+            <button class="button" onclick="window.location.href='/notify/archivePage'">归档页</button>
+        </div>
+
+        <div id="batch" class="batch">
+            已选择 <b id="selectedCount">0</b> 条
+            <button class="button blue" onclick="batchRead()">批量标记已读</button>
+            <button class="button yellow" onclick="batchArchive()">批量归档</button>
+            <button class="button empty" onclick="clearSelection()">取消选择</button>
+        </div>
+
+        <div id="list" class="list"></div>
+
+        <div id="genPanel" class="foot-tools" style="display:none;">
+            管理员调试：<button class="button yellow" onclick="gen()">生成借阅提醒</button>
+        </div>
+    </div>
+</div>
+
+<div id="notifyModalMask" class="notify-modal-mask" onclick="closeNotifyModal()"></div>
+<div id="notifyModal" class="notify-modal" role="dialog" aria-modal="true" aria-label="通知详情弹层">
+    <div class="notify-modal-header">
+        <div id="notifyModalTitle" class="notify-modal-title">通知详情</div>
+        <button class="notify-modal-close" onclick="closeNotifyModal()" aria-label="关闭">x</button>
+    </div>
+    <div class="notify-modal-body">
+        <div id="notifyModalMeta" class="notify-grid"></div>
+        <div id="notifyModalContent" class="notify-content-box">加载中...</div>
+
+        <div class="notify-sec-title">已读回执</div>
+        <div id="notifyReceiptWrap" class="notify-receipt-wrap"></div>
+
+        <div class="notify-sec-title">回复通知</div>
+        <div class="notify-reply-box">
+            <textarea id="notifyReplyInput" maxlength="1000" placeholder="请输入回复内容（最多1000字）"></textarea>
+        </div>
+
+        <div class="notify-modal-footer">
+            <div id="notifyModalStatus" class="notify-modal-status">-</div>
+            <div>
+                <button id="notifyModalReadBtn" class="button blue" onclick="modalRead()">标为已读</button>
+                <button id="notifyModalSignBtn" class="button green" onclick="modalSign()">签收</button>
+                <button class="button" onclick="submitModalReply()">提交回复</button>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
+    var fullList = [];
+    var activeCat = 'all';
+    var selectedMap = {};
+    var PIN_KEY = 'notify_pins';
+    var notifyModalState = { id:null, detail:null, receipts:[] };
+
     $(function(){
-        loadUnread();
+        bindRole();
         loadList();
     });
 
-    function loadUnread(){
-        $.get('/notify/unreadCount', function(res){
-            if(res.code===200){
-                if(res.data>0){ $('#unread').text(res.data).show(); }
-                else{ $('#unread').hide(); }
+    function bindRole(){
+        $.get('/user/currUser', function(res){
+            if(res && res.code===200 && res.data){
+                var auth = (res.data.isAdmin !== undefined) ? res.data.isAdmin : res.data.is_admin;
+                if(auth === 0){ $('#genPanel').show(); }
             }
         });
     }
 
-    function loadList(){
-        var s = $('#status').val();
-        var url = '/notify/my';
-        if(s!=="") url += '?status='+s;
+    function getPins(){
+        try {
+            var v = JSON.parse(localStorage.getItem(PIN_KEY) || '{}');
+            return v && typeof v === 'object' ? v : {};
+        } catch(e){
+            return {};
+        }
+    }
 
-        $.get(url, function(res){
-            if(res.code!==200){
-                javaex.message({content: res.msg || '加载失败', type:'error'});
+    function setPins(v){ localStorage.setItem(PIN_KEY, JSON.stringify(v || {})); }
+
+    function escHtml(s){
+        if(s == null) return '';
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function isSystemType(type){
+        return !type || type === 'SYSTEM';
+    }
+
+    function isExpired(n){
+        return n && n.type === 'OVERDUE_ALERT';
+    }
+
+    function unreadCount(list){
+        var c = 0;
+        $.each(list || [], function(_, n){ if(n.status === 0) c++; });
+        return c;
+    }
+
+    function applyCounters(){
+        var all = fullList.length;
+        var system = 0, personal = 0, unread = 0, read = 0, archived = 0;
+        $.each(fullList, function(_, n){
+            if(isSystemType(n.type)) system++; else personal++;
+            if(n.status === 0) unread++;
+            else if(n.status === 1) read++;
+            else if(n.status === 2) archived++;
+        });
+        $('#c-all').text(all);
+        $('#c-system').text(system);
+        $('#c-personal').text(personal);
+        $('#c-unread').text(unread);
+        $('#c-read').text(read);
+        $('#c-archived').text(archived);
+        if(unread > 0){ $('#unreadTop').text(unread).show(); } else { $('#unreadTop').hide(); }
+    }
+
+    function switchCat(cat){
+        activeCat = cat || 'all';
+        $('.cat').removeClass('active');
+        $('.cat[data-cat="'+activeCat+'"]').addClass('active');
+        clearSelection();
+        renderRows();
+    }
+
+    function loadList(){
+        $.get('/notify/my', function(res){
+            if(!(res && res.code===200)){
+                javaex.message({content: (res && res.msg) || '加载通知失败', type:'error'});
                 return;
             }
-            var list = res.data || [];
-            var html = '';
-            $.each(list, function(_, n){
-                html += "<tr align='center'>";
-                html += "<td>"+ (n.createdAt || '') +"</td>";
-                html += "<td>"+ (n.title || '-') +"<div class='type'>"+(n.type||'')+"</div></td>";
-                html += "<td align='left' class='content'>"+ (n.content || '') +"</td>";
-                html += "<td>"+ (n.status===1?'已读':'未读') +"</td>";
-                if(n.status===0){
-                    html += "<td><button class='button blue empty' onclick='read("+n.id+")'>已读</button></td>";
-                }else{
-                    html += "<td>-</td>";
-                }
-                html += "</tr>";
-            });
-            $('#tbody').html(html);
-            loadUnread();
+            fullList = res.data || [];
+            applyCounters();
+            renderRows();
+            refreshTopBadge();
         });
+    }
+
+    function refreshTopBadge(){
+        $.get('/notify/unreadCount', function(res){
+            if(res && res.code===200){
+                var c = res.data || 0;
+                if(parent && parent.$){
+                    var badge = parent.$('#notify-badge');
+                    if(c > 0) badge.text(c).show(); else badge.hide();
+                }
+            }
+        });
+    }
+
+    function inActiveCategory(n){
+        if(activeCat === 'all') return true;
+        if(activeCat === 'system') return isSystemType(n.type);
+        if(activeCat === 'personal') return !isSystemType(n.type);
+        if(activeCat === 'unread') return n.status === 0;
+        if(activeCat === 'read') return n.status === 1;
+        if(activeCat === 'archived') return n.status === 2;
+        return true;
+    }
+
+    function inDateRange(createdAt){
+        var ds = $('#dateStart').val();
+        var de = $('#dateEnd').val();
+        if(!ds && !de) return true;
+        if(!createdAt) return false;
+        var dt = new Date(createdAt.replace(/-/g,'/'));
+        if(isNaN(dt.getTime())) return true;
+        if(ds){
+            var start = new Date(ds + ' 00:00:00');
+            if(dt < start) return false;
+        }
+        if(de){
+            var end = new Date(de + ' 23:59:59');
+            if(dt > end) return false;
+        }
+        return true;
+    }
+
+    function typeLabel(type){
+        if(type === 'DUE_REMINDER') return '到期提醒';
+        if(type === 'OVERDUE_ALERT') return '逾期提醒';
+        return '系统通知';
+    }
+
+    function typeIcon(type){
+        if(type === 'DUE_REMINDER') return '🔔';
+        if(type === 'OVERDUE_ALERT') return '⚠️';
+        return '✉️';
+    }
+
+    function statusTag(status){
+        if(status === 0) return '<span class="tag unread">未读</span>';
+        if(status === 2) return '<span class="tag archived">已归档</span>';
+        return '<span class="tag read">已读</span>';
+    }
+
+    function renderRows(){
+        var typeFilter = $('#typeFilter').val();
+        var keyword = $.trim($('#keyword').val()).toLowerCase();
+        var pins = getPins();
+        var list = [];
+
+        $.each(fullList, function(_, n){
+            if(!inActiveCategory(n)) return true;
+            if(typeFilter && n.type !== typeFilter) return true;
+            if(!inDateRange(n.createdAt)) return true;
+
+            var title = String(n.title || '').toLowerCase();
+            var content = String(n.content || '').toLowerCase();
+            if(keyword && title.indexOf(keyword) === -1 && content.indexOf(keyword) === -1) return true;
+            list.push(n);
+        });
+
+        list.sort(function(a,b){
+            var ap = pins[a.id] ? 1 : 0;
+            var bp = pins[b.id] ? 1 : 0;
+            if(ap !== bp) return bp - ap;
+            var at = a.createdAt ? new Date(String(a.createdAt).replace(/-/g,'/')).getTime() : 0;
+            var bt = b.createdAt ? new Date(String(b.createdAt).replace(/-/g,'/')).getTime() : 0;
+            return bt - at;
+        });
+
+        var html = '';
+        if(list.length === 0){
+            $('#list').html('<div class="empty">暂无符合条件的通知</div>');
+            updateBatchBar();
+            return;
+        }
+
+        $.each(list, function(_, n){
+            var cardCls = 'card';
+            if(n.status === 0) cardCls += ' unread';
+            if(isExpired(n)) cardCls += ' expired';
+
+            var pinned = !!pins[n.id];
+            var pinTag = pinned ? '<span class="tag top">置顶</span>' : '';
+            var expiredTag = isExpired(n) ? '<span class="tag expired">已过期</span>' : '';
+            var checked = selectedMap[n.id] ? ' checked="checked"' : '';
+
+            html += '<div class="'+cardCls+'">';
+            html += '<div class="check"><input type="checkbox" onchange="toggleSelect('+n.id+', this.checked)"'+checked+'></div>';
+            html += '<div class="icon">'+typeIcon(n.type)+'</div>';
+            html += '<div class="body">';
+            html += '<div class="head">';
+            html += '<div class="name" onclick="showDetail('+n.id+')">'+escHtml(n.title || '-')+'</div>';
+            html += statusTag(n.status) + pinTag + expiredTag;
+            html += '</div>';
+            html += '<div class="meta">'+escHtml(typeLabel(n.type))+' · '+escHtml(n.createdAt || '-')+'</div>';
+            html += '<div class="content">'+escHtml(n.content || '-')+'</div>';
+            html += '</div>';
+
+            html += '<div class="actions">';
+            html += '<button class="button" onclick="showDetail('+n.id+')">详情</button>';
+            if(n.status !== 2){
+                html += '<button class="button green" onclick="signOne('+n.id+')">签收</button>';
+                html += '<button class="button" onclick="replyOne('+n.id+')">回复</button>';
+            }
+            if(n.status === 0){
+                html += '<button class="button blue" onclick="read('+n.id+')">标为已读</button>';
+            }
+            html += '<button class="button" onclick="receiptOne('+n.id+')">回执</button>';
+            if(n.status !== 2){
+                html += '<button class="button yellow" onclick="archiveOne('+n.id+')">归档</button>';
+            } else {
+                html += '<button class="button green" onclick="unarchiveOne('+n.id+')">恢复</button>';
+            }
+            html += '<button class="button" onclick="togglePin('+n.id+')">'+(pinned ? '取消置顶' : '置顶')+'</button>';
+            html += '<button class="button red" onclick="removeOne('+n.id+')">删除</button>';
+            html += '</div>';
+            html += '</div>';
+        });
+
+        $('#list').html(html);
+        updateBatchBar();
+    }
+
+    function statusText(status){
+        if(status === 2) return '已归档';
+        if(status === 1) return '已读';
+        return '未读';
+    }
+
+    function formatDateText(v){
+        return v ? String(v) : '-';
+    }
+
+    function openNotifyModal(id, focusReply, focusReceipt){
+        notifyModalState.id = id;
+        notifyModalState.detail = null;
+        notifyModalState.receipts = [];
+        $('#notifyModalTitle').text('通知详情');
+        $('#notifyModalMeta').html('<div class="notify-cell"><b>加载中</b>请稍候...</div>');
+        $('#notifyModalContent').text('加载中...');
+        $('#notifyReceiptWrap').html('<div class="notify-receipt-empty">回执加载中...</div>');
+        $('#notifyReplyInput').val('');
+        $('#notifyModalStatus').text('-');
+        $('#notifyModalMask').show();
+        $('#notifyModal').show();
+
+        loadNotifyDetailAndReceipt(id, function(){
+            if(focusReply){
+                $('#notifyReplyInput').focus();
+            }
+            if(focusReceipt){
+                var bodyTop = $('#notifyReceiptWrap').offset().top - $('#notifyModal').offset().top + $('#notifyModal').scrollTop() - 12;
+                $('#notifyModal').scrollTop(bodyTop);
+            }
+        });
+    }
+
+    function closeNotifyModal(){
+        $('#notifyModal').hide();
+        $('#notifyModalMask').hide();
+    }
+
+    function loadNotifyDetailAndReceipt(id, done){
+        $.get('/notify/detail', {id:id}, function(res){
+            if(!(res && res.code===200 && res.data)){
+                javaex.message({content:(res && res.msg) || '加载详情失败', type:'error'});
+                closeNotifyModal();
+                return;
+            }
+            notifyModalState.detail = res.data;
+            renderNotifyModal();
+
+            $.get('/notify/receipt', {id:id}, function(receiptRes){
+                if(receiptRes && receiptRes.code===200){
+                    notifyModalState.receipts = receiptRes.data || [];
+                    renderNotifyModalReceipts();
+                } else {
+                    $('#notifyReceiptWrap').html('<div class="notify-receipt-empty">回执加载失败</div>');
+                }
+                if(typeof done === 'function') done();
+            }).fail(function(){
+                $('#notifyReceiptWrap').html('<div class="notify-receipt-empty">回执加载失败</div>');
+                if(typeof done === 'function') done();
+            });
+        }).fail(function(){
+            javaex.message({content:'加载详情失败', type:'error'});
+            closeNotifyModal();
+        });
+    }
+
+    function renderNotifyModal(){
+        var d = notifyModalState.detail || {};
+        $('#notifyModalTitle').text((d.title || '通知详情') + ' · ' + statusText(d.status));
+        var metaHtml = '';
+        metaHtml += '<div class="notify-cell"><b>类型</b>' + escHtml(typeLabel(d.type)) + '</div>';
+        metaHtml += '<div class="notify-cell"><b>创建时间</b>' + escHtml(formatDateText(d.createdAt)) + '</div>';
+        metaHtml += '<div class="notify-cell"><b>已读时间</b>' + escHtml(formatDateText(d.readAt)) + '</div>';
+        metaHtml += '<div class="notify-cell"><b>签收时间</b>' + escHtml(formatDateText(d.signedAt)) + '</div>';
+        metaHtml += '<div class="notify-cell"><b>回复时间</b>' + escHtml(formatDateText(d.repliedAt)) + '</div>';
+        metaHtml += '<div class="notify-cell"><b>归档时间</b>' + escHtml(formatDateText(d.archivedAt)) + '</div>';
+        $('#notifyModalMeta').html(metaHtml);
+        $('#notifyModalContent').text(d.content || '-');
+
+        var canOperate = d.status !== 2;
+        $('#notifyModalReadBtn').toggle(canOperate && d.status === 0);
+        $('#notifyModalSignBtn').toggle(canOperate);
+        $('#notifyReplyInput').prop('disabled', !canOperate);
+        if(canOperate){
+            $('#notifyModalStatus').text('可进行签收、回复、标记已读');
+        } else {
+            $('#notifyModalStatus').text('归档通知只读，不可修改');
+        }
+
+        if(d.replyContent){
+            $('#notifyReplyInput').val(d.replyContent);
+        }
+        renderNotifyModalReceipts();
+    }
+
+    function renderNotifyModalReceipts(){
+        var rows = notifyModalState.receipts || [];
+        if(!rows.length){
+            $('#notifyReceiptWrap').html('<div class="notify-receipt-empty">暂无回执记录</div>');
+            return;
+        }
+        var html = '';
+        html += '<table class="notify-receipt-table">';
+        html += '<thead><tr><th>用户</th><th>已读时间</th><th>签收时间</th><th>回复时间</th></tr></thead><tbody>';
+        for(var i=0;i<rows.length;i++){
+            var r = rows[i] || {};
+            html += '<tr>';
+            html += '<td>' + escHtml(r.userName || ('用户' + (r.userId || ''))) + '</td>';
+            html += '<td>' + escHtml(formatDateText(r.readAt)) + '</td>';
+            html += '<td>' + escHtml(formatDateText(r.signedAt)) + '</td>';
+            html += '<td>' + escHtml(formatDateText(r.repliedAt)) + '</td>';
+            html += '</tr>';
+        }
+        html += '</tbody></table>';
+        $('#notifyReceiptWrap').html(html);
+    }
+
+    function modalRead(){
+        if(!notifyModalState.id) return;
+        $.post('/notify/read', {id:notifyModalState.id}, function(res){
+            if(res && res.code===200){
+                javaex.message({content:'已标记为已读', type:'success'});
+                loadList();
+                refreshTopBadge();
+                loadNotifyDetailAndReceipt(notifyModalState.id);
+            }else{
+                javaex.message({content:(res && res.msg) || '操作失败', type:'error'});
+            }
+        });
+    }
+
+    function modalSign(){
+        if(!notifyModalState.id) return;
+        $.post('/notify/sign', {id:notifyModalState.id}, function(res){
+            if(res && res.code===200){
+                javaex.message({content:'签收成功', type:'success'});
+                loadList();
+                refreshTopBadge();
+                loadNotifyDetailAndReceipt(notifyModalState.id);
+            }else{
+                javaex.message({content:(res && res.msg) || '签收失败', type:'error'});
+            }
+        });
+    }
+
+    function submitModalReply(){
+        if(!notifyModalState.id) return;
+        if(notifyModalState.detail && notifyModalState.detail.status === 2){
+            javaex.message({content:'归档通知不可回复', type:'warning'});
+            return;
+        }
+        var content = $.trim($('#notifyReplyInput').val());
+        if(!content){
+            javaex.message({content:'回复内容不能为空', type:'warning'});
+            return;
+        }
+        $.post('/notify/reply', {id:notifyModalState.id, replyContent:content}, function(res){
+            if(res && res.code===200){
+                javaex.message({content:'回复成功', type:'success'});
+                loadList();
+                loadNotifyDetailAndReceipt(notifyModalState.id);
+            }else{
+                javaex.message({content:(res && res.msg) || '回复失败', type:'error'});
+            }
+        });
+    }
+
+    function showDetail(id){
+        openNotifyModal(id, false, false);
+    }
+
+    function signOne(id){
+        $.post('/notify/sign', {id:id}, function(res){
+            if(res && res.code===200){
+                javaex.message({content:'签收成功', type:'success'});
+                loadList();
+                refreshTopBadge();
+                if(notifyModalState.id === id){
+                    loadNotifyDetailAndReceipt(id);
+                }
+            }else{
+                javaex.message({content:(res && res.msg) || '签收失败', type:'error'});
+            }
+        });
+    }
+
+    function replyOne(id){
+        openNotifyModal(id, true, false);
+    }
+
+    function receiptOne(id){
+        openNotifyModal(id, false, true);
+    }
+
+    function toggleSelect(id, checked){
+        if(checked) selectedMap[id] = 1; else delete selectedMap[id];
+        updateBatchBar();
+    }
+
+    function clearSelection(){
+        selectedMap = {};
+        updateBatchBar();
+        renderRows();
+    }
+
+    function selectedIds(){
+        var ids = [];
+        for(var k in selectedMap){ if(selectedMap.hasOwnProperty(k)) ids.push(parseInt(k,10)); }
+        return ids;
+    }
+
+    function updateBatchBar(){
+        var c = selectedIds().length;
+        $('#selectedCount').text(c);
+        if(c > 0) $('#batch').show(); else $('#batch').hide();
+    }
+
+    function postByIds(ids, url, doneMsg){
+        if(!ids || ids.length === 0){
+            javaex.message({content:'请先选择通知', type:'warning'});
+            return;
+        }
+        var idx = 0;
+        var ok = 0;
+        var fail = 0;
+        function next(){
+            if(idx >= ids.length){
+                var msg = doneMsg + '（成功 ' + ok + ' 条';
+                if(fail > 0) msg += '，失败 ' + fail + ' 条';
+                msg += '）';
+                javaex.message({content:msg, type: fail > 0 ? 'warning' : 'success'});
+                clearSelection();
+                loadList();
+                refreshTopBadge();
+                return;
+            }
+            var id = ids[idx++];
+            $.post(url, {id:id}, function(res){
+                if(res && res.code===200) ok++; else fail++;
+                next();
+            }).fail(function(){
+                fail++;
+                next();
+            });
+        }
+        next();
     }
 
     function read(id){
         $.post('/notify/read', {id:id}, function(res){
-            if(res.code===200){ javaex.message({content:'已标记', type:'success'}); loadList(); }
-            else{ javaex.message({content:res.msg||'操作失败', type:'error'}); }
+            if(res && res.code===200){
+                javaex.message({content:'已标记为已读', type:'success'});
+                loadList();
+                refreshTopBadge();
+            }else{
+                javaex.message({content:(res && res.msg) || '操作失败', type:'error'});
+            }
         });
     }
 
     function readAll(){
+        javaex.confirm({content:'确认将全部通知标记为已读吗？', callback:'readAllSubmit()'});
+    }
+
+    function readAllSubmit(){
         $.post('/notify/readAll', function(res){
-            if(res.code===200){ javaex.message({content:'已全部标记为已读', type:'success'}); loadList(); }
-            else{ javaex.message({content:res.msg||'操作失败', type:'error'}); }
+            if(res && res.code===200){
+                javaex.message({content:'已全部标记为已读', type:'success'});
+                loadList();
+            }else{
+                javaex.message({content:(res && res.msg) || '操作失败', type:'error'});
+            }
         });
+    }
+
+    function archiveOne(id){
+        $.post('/notify/archive', {id:id}, function(res){
+            if(res && res.code===200){
+                javaex.message({content:'已归档', type:'success'});
+                loadList();
+                refreshTopBadge();
+            } else {
+                javaex.message({content:(res && res.msg) || '归档失败', type:'error'});
+            }
+        });
+    }
+
+    function unarchiveOne(id){
+        $.post('/notify/unarchive', {id:id}, function(res){
+            if(res && res.code===200){
+                javaex.message({content:'已恢复到已读', type:'success'});
+                loadList();
+                refreshTopBadge();
+            } else {
+                javaex.message({content:(res && res.msg) || '恢复失败', type:'error'});
+            }
+        });
+    }
+
+    function removeOne(id){
+        javaex.confirm({content:'确认删除这条通知吗？', callback:'removeSubmit('+id+')'});
+    }
+
+    function removeSubmit(id){
+        $.post('/notify/delete', {id:id}, function(res){
+            if(res && res.code===200){
+                javaex.message({content:'删除成功', type:'success'});
+                loadList();
+                refreshTopBadge();
+            } else {
+                javaex.message({content:(res && res.msg) || '删除失败', type:'error'});
+            }
+        });
+    }
+
+    function togglePin(id){
+        var pins = getPins();
+        if(pins[id]) delete pins[id]; else pins[id] = 1;
+        setPins(pins);
+        renderRows();
+    }
+
+    function batchRead(){
+        postByIds(selectedIds(), '/notify/read', '批量标记已读完成');
+    }
+
+    function batchArchive(){
+        postByIds(selectedIds(), '/notify/archive', '批量归档完成');
     }
 
     function gen(){
         $.post('/notify/genBorrow?dueDays=1', function(res){
-            if(res.code===200){ javaex.message({content:'生成完成，新建：'+res.data, type:'success'}); loadList(); }
-            else{ javaex.message({content:res.msg||'生成失败', type:'error'}); }
+            if(res && res.code===200){
+                javaex.message({content:'生成完成，新建：'+res.data, type:'success'});
+                loadList();
+            }else{
+                javaex.message({content:(res && res.msg) || '生成失败', type:'error'});
+            }
         });
     }
 </script>

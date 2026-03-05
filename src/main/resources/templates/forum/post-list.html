@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
     <meta charset="utf-8">
     <title>论坛 - 帖子列表</title>
@@ -15,22 +15,38 @@
         .breadcrumb span { margin: 0 4px; }
         .breadcrumb .active { color: #1890ff; font-weight: 500; }
 
-        .block { background: #fff; padding: 24px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.06); min-height: 600px; }
-        .block-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #e8e8e8; }
-        .block-title { font-size: 18px; font-weight: 600; color: #333; display: flex; align-items: center; }
-        .block-title::before { content: ''; display: inline-block; width: 4px; height: 18px; background: #1890ff; margin-right: 8px; border-radius: 2px; }
+        .layout { display:flex; gap:14px; align-items:flex-start; }
+        .left, .right, .center { background:#fff; border-radius:10px; box-shadow:0 1px 2px rgba(0,0,0,.06); }
+        .left { width:180px; padding:12px; }
+        .center { flex:1; padding:18px; min-height:640px; }
+        .right { width:260px; padding:12px; }
 
-        .post-item { padding: 20px; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: all 0.3s; border-radius: 4px; }
-        .post-item:hover { background: #fafafa; transform: translateX(4px); }
-        .post-item:last-child { border-bottom: none; }
-        .post-title { font-weight: 600; font-size: 16px; color: #262626; margin-bottom: 8px; }
-        .post-summary { color: #8c8c8c; font-size: 13px; margin-bottom: 8px; line-height: 1.5; }
-        .post-meta { color: #bfbfbf; font-size: 12px; }
+        .panel-title { font-size:16px; font-weight:700; color:#303133; margin-bottom:10px; }
+        .board { padding:8px 10px; border-radius:8px; color:#606266; cursor:pointer; margin-bottom:4px; }
+        .board:hover { background:#f5f8ff; color:#3a6df0; }
+        .board.active { background:#ecf3ff; color:#2b5fd9; font-weight:700; }
 
-        .search-box { display: flex; gap: 10px; }
-        .search-box input { height: 32px; padding: 0 10px; border: 1px solid #d9d9d9; border-radius: 4px; width: 300px; }
-        .search-box .button { height: 32px; line-height: 30px; }
-        .page { margin-top: 20px; text-align: right; }
+        .block-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid #eef1f6; padding-bottom:12px; }
+        .search-box { display: flex; gap: 8px; }
+        .search-box input { height: 34px; padding: 0 10px; border: 1px solid #d9d9d9; border-radius: 6px; width: 320px; }
+        .search-box .button { height: 34px; line-height: 32px; border-radius:6px; }
+
+        .post-item { position:relative; padding: 14px; border: 1px solid #edf1f6; margin-bottom:10px; cursor: pointer; transition: all 0.2s; border-radius: 8px; }
+        .post-item:hover { box-shadow:0 6px 16px rgba(33,72,133,.12); transform: translateY(-1px); }
+        .post-title { font-weight: 600; font-size: 16px; color: #262626; margin-bottom: 8px; display:flex; align-items:center; gap:8px; }
+        .post-summary { color: #666; font-size: 13px; margin-bottom: 8px; line-height: 1.6; }
+        .post-meta { color: #909399; font-size: 12px; }
+        .post-actions { position:absolute; right:10px; top:10px; opacity:0; transition:opacity .2s; }
+        .post-item:hover .post-actions { opacity:1; }
+        .tag { font-size:12px; border-radius:999px; border:1px solid #b3d8ff; background:#ecf5ff; color:#409eff; padding:1px 8px; }
+
+        .hot-item { padding:8px; border-bottom:1px dashed #ececec; }
+        .hot-item:last-child { border-bottom:none; }
+        .hot-item a { color:#303133; }
+        .hot-meta { color:#909399; font-size:12px; margin-top:3px; }
+
+        .empty { color:#999; text-align:center; padding:36px 0; }
+        .page { margin-top: 14px; text-align: right; }
     </style>
 </head>
 <body class="module-theme">
@@ -40,47 +56,157 @@
     <span class="active">帖子列表</span>
 </div>
 
-<div class="block">
-    <div class="block-header">
-        <div class="block-title">最新讨论</div>
-        <div class="search-box">
-            <input id="keyword" type="text" placeholder="搜索帖子标题或内容" />
-            <button class="button blue" onclick="search()"><span class="icon-search"></span> 搜索</button>
-            <button class="button green" onclick="toAdd()"><span class="icon-plus"></span> 发帖</button>
-        </div>
+<div class="layout">
+    <div class="left">
+        <div class="panel-title">板块导航</div>
+        <div class="board active" data-board="" onclick="switchBoard('')">全部</div>
+        <div class="board" data-board="问答" onclick="switchBoard('问答')">问答</div>
+        <div class="board" data-board="闲聊" onclick="switchBoard('闲聊')">闲聊</div>
+        <div class="board" data-board="资源" onclick="switchBoard('资源')">资源</div>
+        <div class="board" data-board="求助" onclick="switchBoard('求助')">求助</div>
     </div>
 
-    <div id="list"></div>
-    <div class="page"><ul id="page" class="pagination"></ul></div>
+    <div class="center">
+        <div class="block-header">
+            <div class="panel-title" style="margin-bottom:0;">最新讨论</div>
+            <div class="search-box">
+                <input id="keyword" type="text" placeholder="搜索帖子标题或内容" />
+                <button class="button" onclick="switchScope('all')">全部</button>
+                <button class="button" onclick="switchScope('mine')">我的帖子</button>
+                <button class="button" onclick="switchScope('fav')">我的收藏</button>
+                <button class="button blue" onclick="search()">搜索</button>
+                <button class="button green" onclick="toAdd()">发帖</button>
+            </div>
+        </div>
+
+        <div id="list"></div>
+        <div class="page"><ul id="page" class="pagination"></ul></div>
+    </div>
+
+    <div class="right">
+        <div class="panel-title">热门帖子</div>
+        <div id="hotList"></div>
+    </div>
 </div>
 
 <script>
+    var currentBoard = '';
+    var latestList = [];
+    var currentUser = null;
+    var scope = 'all';
+
     function toAdd(){ window.location.href = '/forum/post-add'; }
     function openDetail(id){ window.location.href = '/forum/post-detail?id=' + id; }
 
+    function escHtml(s){
+        if(s == null) return '';
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function switchBoard(board){
+        currentBoard = board || '';
+        $('.board').removeClass('active');
+        $('.board[data-board="'+currentBoard+'"]').addClass('active');
+        loadPage(1,10);
+    }
+
+    function boardTag(it){
+        var t = (it && (it.tag || it.type || it.category)) || currentBoard || '讨论';
+        return '<span class="tag">'+escHtml(t)+'</span>';
+    }
+
+    function switchScope(v){
+        scope = v || 'all';
+        loadPage(1,10);
+    }
+
     function render(list){
+        latestList = list || [];
+        if(!latestList.length){
+            $('#list').html('<div class="empty">暂无帖子，欢迎发布第一条内容</div>');
+            renderHot([]);
+            return;
+        }
         var html = '';
-        for(var i=0;i<list.length;i++){
-            var it = list[i];
+        for(var i=0;i<latestList.length;i++){
+            var it = latestList[i] || {};
             html += '<div class="post-item" onclick="openDetail('+it.id+')">'
-                + '<div class="post-title">'+(it.title||'')+'</div>'
-                + '<div class="post-summary">'+(it.summary||'')+'</div>'
-                + '<div class="post-meta">阅读 '+(it.viewCount||0)+' • 回复 '+(it.replyCount||0)+' • '+(it.createdAt||'')+'</div>'
+                + '<div class="post-actions">'
+                + '<button class="button empty" onclick="event.stopPropagation();toggleFavorite('+it.id+', true)">收藏</button>'
+                + '<button class="button empty" onclick="event.stopPropagation();toggleFavorite('+it.id+', false)">取消收藏</button>'
+                + '</div>'
+                + '<div class="post-title">'+boardTag(it)+(escHtml(it.title||''))+(it.acceptedReplyId?'<span class="tag" style="border-color:#95de64;background:#f6ffed;color:#389e0d;">已采纳</span>':'')+'</div>'
+                + '<div class="post-summary">'+escHtml(it.summary||'')+'</div>'
+                + '<div class="post-meta">阅读 '+(it.viewCount||0)+' · 回复 '+(it.replyCount||0)+' · '+escHtml(it.createdAt||'')+'</div>'
                 + '</div>';
         }
         $('#list').html(html);
+        renderHot(latestList);
+    }
+
+    function renderHot(list){
+        var data = (list || []).slice(0);
+        data.sort(function(a,b){ return (b.viewCount||0) - (a.viewCount||0); });
+        data = data.slice(0, 8);
+        if(!data.length){
+            $('#hotList').html('<div class="empty">暂无热帖</div>');
+            return;
+        }
+        var html = '';
+        for(var i=0;i<data.length;i++){
+            var p = data[i] || {};
+            html += '<div class="hot-item">'
+                + '<a href="javascript:openDetail('+p.id+')">'+escHtml(p.title||'-')+'</a>'
+                + '<div class="hot-meta">热度 '+(p.viewCount||0)+' · 回复 '+(p.replyCount||0)+'</div>'
+                + '</div>';
+        }
+        $('#hotList').html(html);
+    }
+
+    function toggleFavorite(postId, on){
+        $.post('/forum/api/post/favorite', {postId:postId, on:on}, function(res){
+            if(res && res.code===200){
+                javaex.message({content:on?'已收藏':'已取消收藏', type:'success'});
+                if(scope === 'fav'){ loadPage(1,10); }
+            }else{
+                javaex.message({content:(res && res.msg) || '操作失败', type:'error'});
+            }
+        });
     }
 
     function loadPage(currPage, perPage){
         var keyword = $('#keyword').val();
+        if(scope === 'mine'){
+            $.get('/forum/api/my/posts', {keyword:keyword}, function(res){
+                if(res && res.code===200){
+                    render(res.data || []);
+                    $('#page').empty();
+                }
+            });
+            return;
+        }
+        if(scope === 'fav'){
+            $.get('/forum/api/my/favorites', {keyword:keyword}, function(res){
+                if(res && res.code===200){
+                    render(res.data || []);
+                    $('#page').empty();
+                }
+            });
+            return;
+        }
+
+        var merged = keyword || '';
+        if(currentBoard){
+            merged = merged ? (merged + ' ' + currentBoard) : currentBoard;
+        }
         $.ajax({
             url: '/forum/api/posts/page',
             type: 'POST',
             contentType: 'application/json',
-            data: JSON.stringify({currPage: currPage, pageSize: perPage, keyword: keyword}),
+            data: JSON.stringify({currPage: currPage, pageSize: perPage, keyword: merged}),
             success: function(res){
-                if(res && res.code == 200){
-                    var p = res.data;
+                if(res && res.code === 200){
+                    var p = res.data || {};
                     render(p.list || []);
                     var total = p.total || 0;
                     var pageSize = p.pageSize || 10;
@@ -100,7 +226,10 @@
     }
 
     function search(){ loadPage(1,10); }
-    $(document).ready(function(){ loadPage(1,10); });
+    $(document).ready(function(){
+        $.get('/user/currUser', function(res){ if(res && res.code===200) currentUser = res.data || null; });
+        loadPage(1,10);
+    });
 </script>
 </body>
 </html>

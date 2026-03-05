@@ -6,6 +6,7 @@
     <link href="../../javaex/pc/css/common.css" rel="stylesheet" />
     <link href="../../javaex/pc/css/skin/tina.css" rel="stylesheet" />
     <script src="../../javaex/pc/lib/jquery-1.7.2.min.js"></script>
+    <script src="../../javaex/pc/js/javaex.min.js"></script>
 </head>
 <body>
 <div class="block">
@@ -59,6 +60,10 @@
 <script>
     var currentFloorId=null, currentShelfId=null, currentCellId=null;
 
+    function toast(content, type){
+        javaex.message({content: content, type: type || 'error'});
+    }
+
     function renderFloors(list){
         var html='';
         for(var i=0;i<list.length;i++){
@@ -74,8 +79,8 @@
 
     function addFloor(){
         var name=$('#fName').val(); var sort=parseInt($('#fSort').val()||'0',10);
-        if(!name){ alert('请输入名称'); return; }
-        $.post('/nav/admin/floor/add',{name:name,sort:sort}, function(res){ if(res && res.code==200){ $('#fName').val(''); loadFloors(); } else alert('添加失败'); });
+        if(!name){ toast('请输入名称'); return; }
+        $.post('/nav/admin/floor/add',{name:name,sort:sort}, function(res){ if(res && res.code==200){ $('#fName').val(''); loadFloors(); } else toast('添加失败'); });
     }
 
     function selectFloor(id){
@@ -100,12 +105,12 @@
     }
 
     function addShelf(){
-        if(!currentFloorId){ alert('请先选楼层'); return; }
-        var code=$('#sCode').val(); if(!code){ alert('请输入code'); return; }
+        if(!currentFloorId){ toast('请先选楼层'); return; }
+        var code=$('#sCode').val(); if(!code){ toast('请输入code'); return; }
         var name=$('#sName').val();
         var x=$('#sX').val()?parseInt($('#sX').val(),10):null;
         var y=$('#sY').val()?parseInt($('#sY').val(),10):null;
-        $.post('/nav/admin/shelf/add',{floorId:currentFloorId, code:code, name:name, x:x, y:y}, function(res){ if(res && res.code==200){ loadShelves(); } else alert('添加失败'); });
+        $.post('/nav/admin/shelf/add',{floorId:currentFloorId, code:code, name:name, x:x, y:y}, function(res){ if(res && res.code==200){ loadShelves(); } else toast('添加失败'); });
     }
 
     function selectShelf(id){
@@ -129,11 +134,11 @@
     }
 
     function addCell(){
-        if(!currentShelfId){ alert('请先选书架'); return; }
+        if(!currentShelfId){ toast('请先选书架'); return; }
         var layer=parseInt($('#cLayer').val()||'0',10);
         var cell=parseInt($('#cCell').val()||'0',10);
-        if(layer<=0||cell<=0){ alert('layer/cell 需大于0'); return; }
-        $.post('/nav/admin/cell/add',{shelfId:currentShelfId, layerNo:layer, cellNo:cell}, function(res){ if(res && res.code==200){ loadCells(); } else alert('添加失败'); });
+        if(layer<=0||cell<=0){ toast('layer/cell 需大于0'); return; }
+        $.post('/nav/admin/cell/add',{shelfId:currentShelfId, layerNo:layer, cellNo:cell}, function(res){ if(res && res.code==200){ loadCells(); } else toast('添加失败'); });
     }
 
     function selectCell(id){
@@ -160,10 +165,10 @@
     }
 
     function bindBook(bookId){
-        if(!currentFloorId||!currentShelfId||!currentCellId){ alert('请先选楼层/书架/格位'); return; }
+        if(!currentFloorId||!currentShelfId||!currentCellId){ toast('请先选楼层/书架/格位'); return; }
         $.post('/nav/admin/bind',{bookId:bookId,floorId:currentFloorId,shelfId:currentShelfId,cellId:currentCellId}, function(res){
-            if(res && res.code==200){ alert('绑定成功'); }
-            else alert('绑定失败');
+            if(res && res.code==200){ toast('绑定成功', 'success'); }
+            else toast('绑定失败');
         });
     }
 

@@ -6,6 +6,7 @@ import com.book.manager.dao.RecommendationMapper;
 import com.book.manager.entity.RecommendCache;
 import com.book.manager.entity.Recommendation;
 import com.book.manager.entity.Users;
+import com.book.manager.modules.ai.service.BookKnowledgeService;
 import com.book.manager.modules.ai.service.SmartLibrarianService;
 import com.book.manager.util.vo.BookOut;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -36,6 +37,9 @@ public class RecommendationService {
 
     @Autowired
     private SmartLibrarianService smartLibrarianService;
+
+    @Autowired
+    private BookKnowledgeService bookKnowledgeService;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -75,7 +79,8 @@ public class RecommendationService {
                 ", favoriteCategories=" + (profile == null ? "" : String.valueOf(profile.getFavoriteCategories())) +
                 ", overdueRate=" + (profile == null ? 0 : profile.getOverdueRate());
 
-        String aiJson = smartLibrarianService.recommend("rec-" + userId, prompt);
+        String knowledgePrompt = bookKnowledgeService.buildPromptWithContext(prompt);
+        String aiJson = smartLibrarianService.recommend("rec-" + userId, knowledgePrompt);
 
         // 复用 AiRecommendationController 的解析逻辑比较麻烦，这里做最简单 JSON 解析
         List<Integer> ids = new ArrayList<>();
@@ -156,6 +161,7 @@ public class RecommendationService {
                     out.setAuthor(b.getAuthor());
                     out.setType(b.getType());
                     out.setCover(b.getCover());
+                    out.setIntroduction(b.getIntroduction());
                 }
             }
             outs.add(out);

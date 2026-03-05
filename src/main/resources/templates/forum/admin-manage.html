@@ -24,11 +24,31 @@
             <h3>回复列表</h3>
             <div id="replyList"></div>
         </div>
+
+        <div id="reports" style="margin-top:20px;background:#fff;padding:12px;">
+            <h3>举报处理</h3>
+            <div style="margin-bottom:8px;">
+                <select id="reportStatus" class="select" style="width:140px;height:32px;">
+                    <option value="">全部状态</option>
+                    <option value="0">待处理</option>
+                    <option value="1">已通过</option>
+                    <option value="2">已驳回</option>
+                </select>
+                <button class="button small" onclick="loadReports()">刷新举报</button>
+            </div>
+            <div id="reportList"></div>
+        </div>
     </div>
 </div>
 
 <script>
     var currentPostId = null;
+    var pendingReportId = null;
+    var pendingReportStatus = null;
+
+    function toast(content, type){
+        javaex.message({content: content, type: type || 'error'});
+    }
 
     function render(list){
         var html='';
@@ -76,17 +96,17 @@
             if(res && res.code==200){
                 if(currentPostId) viewReplies(currentPostId);
                 search();
-            } else alert('失败');
+            } else toast('失败');
         });
     }
 
     function recount(postId){
         $.post('/forum/admin/post/recount',{postId:postId}, function(res){
             if(res && res.code==200){
-                alert('已重算');
+                toast('已重算', 'success');
                 search();
             } else {
-                alert('重算失败');
+                toast('重算失败');
             }
         });
     }
@@ -109,12 +129,65 @@
         });
     }
 
-    function search(){ loadPage(1,20); }
-    function doStatus(id,s){ $.post('/forum/admin/status',{id:id,status:s},function(res){ if(res && res.code==200) search(); else alert('失败'); }); }
-    function doPin(id,p){ $.post('/forum/admin/pin',{id:id,isPinned:p},function(res){ if(res && res.code==200) search(); else alert('失败'); }); }
-    function doFeature(id,f){ $.post('/forum/admin/feature',{id:id,isFeatured:f},function(res){ if(res && res.code==200) search(); else alert('失败'); }); }
+    function loadReports(){
+        $.get('/forum/admin/report/list', {status: $('#reportStatus').val() || '', keyword: $('#keyword').val() || ''}, function(res){
+            if(!(res && res.code==200)){ return; }
+            var list = res.data || [];
+            if(!list.length){
+                $('#reportList').html('<div style="color:#999;">暂无举报记录</div>');
+                return;
+            }
+            var html='';
+            for(var i=0;i<list.length;i++){
+                var it = list[i] || {};
+                var statusText = (it.status==0?'待处理':(it.status==1?'已通过':'已驳回'));
+                html += '<div style="padding:10px;border-top:1px dashed #eee;">'
+                    + '<div><b>帖子：</b>'+(it.postTitle||'-')+' <span style="margin-left:10px;color:#999;">分类:'+(it.category||'综合')+'</span></div>'
+                    + '<div style="margin-top:4px;"><b>举报人：</b>'+(it.reporterNickname||it.reporterUsername||('用户'+(it.userId||'')))+' <b style="margin-left:10px;">状态：</b>'+statusText+'</div>'
+                    + '<div style="margin-top:4px;"><b>原因：</b>'+(it.reason||'-')+'</div>'
+                    + '<div style="margin-top:6px;">'
+                    + '<button class="button small" onclick="handleReport('+it.id+',1)">通过</button> '
+                    + '<button class="button small" onclick="handleReport('+it.id+',2)">驳回</button>'
+                    + '</div>'
+                    + '</div>';
+            }
+            $('#reportList').html(html);
+        });
+    }
 
-    $(document).ready(function(){ loadPage(1,20); });
+    function submitHandleReport(){
+        var note = $.trim($('#reportHandleNote').val() || '');
+        $.post('/forum/admin/report/handle',{id:pendingReportId,status:pendingReportStatus,handleNote:note}, function(res){
+            if(res && res.code==200){
+                toast('处理成功', 'success');
+                loadReports();
+            } else {
+                toast((res && res.msg) || '处理失败');
+            }
+        });
+    }
+
+    function handleReport(id, status){
+        pendingReportId = id;
+        pendingReportStatus = status;
+        var hint = status===1 ? '处理备注（可选）' : '驳回备注（可选）';
+        var html = '<div style="padding:4px 0 0;">'
+            + '<textarea id="reportHandleNote" class="desc" style="height:120px;" placeholder="'+hint+'"></textarea>'
+            + '</div>';
+        javaex.alert({
+            title: status===1 ? '通过举报' : '驳回举报',
+            content: html,
+            width: 520,
+            callback: 'submitHandleReport()'
+        });
+    }
+
+    function search(){ loadPage(1,20); loadReports(); }
+    function doStatus(id,s){ $.post('/forum/admin/status',{id:id,status:s},function(res){ if(res && res.code==200) search(); else toast('失败'); }); }
+    function doPin(id,p){ $.post('/forum/admin/pin',{id:id,isPinned:p},function(res){ if(res && res.code==200) search(); else toast('失败'); }); }
+    function doFeature(id,f){ $.post('/forum/admin/feature',{id:id,isFeatured:f},function(res){ if(res && res.code==200) search(); else toast('失败'); }); }
+
+    $(document).ready(function(){ loadPage(1,20); loadReports(); });
 </script>
 </body>
 </html>

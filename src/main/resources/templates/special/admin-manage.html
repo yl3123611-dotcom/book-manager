@@ -7,6 +7,7 @@
     <link href="../../javaex/pc/css/skin/tina.css" rel="stylesheet" />
     <link href="../../javaex/pc/css/module-theme.css" rel="stylesheet" />
     <script src="../../javaex/pc/lib/jquery-1.7.2.min.js"></script>
+    <script src="../../javaex/pc/js/javaex.min.js"></script>
 </head>
 <body class="module-theme">
 <div class="block">
@@ -53,6 +54,12 @@
 
                 <h3 style="margin-top:16px;">当前专题书单</h3>
                 <div id="topicBooks" style="margin-top:10px;"></div>
+
+                <h3 style="margin-top:16px;">专题统计</h3>
+                <div style="margin-top:8px;">
+                    <button class="button" onclick="loadStats()">刷新统计</button>
+                </div>
+                <div id="topicStats" style="margin-top:10px;"></div>
             </div>
         </div>
 
@@ -63,11 +70,43 @@
     var topicList = [];
     var currentTopic = null;
 
+    function toast(content, type){
+        javaex.message({content: content, type: type || 'error'});
+    }
+
     function setMsg(t){ $('#msg').text(t||''); }
 
+    function loadStats(){
+        var topicId = currentTopic ? currentTopic.id : '';
+        $.get('/topic/admin/stats', {topicId: topicId}, function(res){
+            if(!(res && res.code===200)){
+                $('#topicStats').html('<div style="color:red;">加载统计失败</div>');
+                return;
+            }
+            var list = res.data || [];
+            if(!list.length){
+                $('#topicStats').html('<div style="color:#999;">暂无统计数据</div>');
+                return;
+            }
+            var html = '';
+            for(var i=0;i<list.length;i++){
+                var s = list[i] || {};
+                html += '<div style="padding:8px;border-bottom:1px dashed #eee;">'
+                    + '<b>'+ (s.name || '-') +'</b>'
+                    + ' | 书目: '+(s.bookCount||0)
+                    + ' | 收藏用户: '+(s.favoriteUsers||0)
+                    + ' | 收藏次数: '+(s.favoriteActions||0)
+                    + ' | 分享次数: '+(s.shareCount||0)
+                    + ' | 最近分享: '+(s.lastShareAt||'-')
+                    + '</div>';
+            }
+            $('#topicStats').html(html);
+        });
+    }
+
     function loadTopics(){
-        $.get('/topic/admin/list', function(res){
-            if(res && res.code==200){
+        $.get('/topic/api/list', function(res){
+            if(res && res.code===200){
                 topicList = res.data || [];
                 var sel = $('#topicSel');
                 sel.empty();
@@ -80,9 +119,11 @@
                     sel.val(currentTopic.id);
                     renderTopicMeta(currentTopic);
                     loadTopicBooksBySlug(currentTopic.slug);
+                    loadStats();
                 } else {
                     $('#topicMeta').text('暂无专题');
                     $('#topicBooks').html('');
+                    $('#topicStats').html('<div style="color:#999;">暂无统计数据</div>');
                 }
                 setMsg('');
             } else {
@@ -103,20 +144,24 @@
             if(parseInt(topicList[i].id,10)===id){ currentTopic = topicList[i]; break; }
         }
         renderTopicMeta(currentTopic);
-        if(currentTopic) loadTopicBooksBySlug(currentTopic.slug);
+        if(currentTopic){
+            loadTopicBooksBySlug(currentTopic.slug);
+            loadStats();
+        }
     }
 
     function addTopic(){
         var slug=$('#slug').val();
         var name=$('#name').val();
         var desc=$('#desc').val();
-        if(!slug||!name){ alert('请输入slug和名称'); return; }
+        if(!slug||!name){ toast('请输入slug和名称'); return; }
         $.post('/topic/admin/add',{slug:slug,name:name,description:desc}, function(res){
             if(res && res.code==200){
                 $('#slug').val(''); $('#name').val(''); $('#desc').val('');
                 loadTopics();
+                toast('添加成功', 'success');
             } else {
-                alert(res.msg||'添加失败');
+                toast(res.msg||'添加失败');
             }
         });
     }
@@ -151,14 +196,15 @@
     }
 
     function addBookToTopic(bookId){
-        if(!currentTopic){ alert('请先选择专题'); return; }
+        if(!currentTopic){ toast('请先选择专题'); return; }
         $.post('/topic/admin/addBook',{topicId: currentTopic.id, bookId: bookId, sort: 0}, function(res){
-            if(res && res.code==200){
-                // INSERT IGNORE: 如果已存在，后端可能返回 code=200 但影��行数=0，我们这里统一提示“已在专题中/已加入”
+            if(res && res.code===200){
+                // 已存在时后端通常不会重复写入，这里统一成功提示。
                 setMsg('操作成功：如已存在则不会重复添加');
+                toast('操作成功', 'success');
                 loadTopicBooksBySlug(currentTopic.slug);
             } else {
-                alert(res.msg||'加入失败');
+                toast(res.msg||'加入失败');
             }
         });
     }

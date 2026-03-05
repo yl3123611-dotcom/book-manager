@@ -7,6 +7,7 @@
     <link href="../../javaex/pc/css/skin/tina.css" rel="stylesheet" />
     <link href="../../javaex/pc/css/module-theme.css" rel="stylesheet" />
     <script src="../../javaex/pc/lib/jquery-1.7.2.min.js"></script>
+    <script src="../../javaex/pc/js/javaex.min.js"></script>
 </head>
 <body class="module-theme">
 <div class="block">
@@ -14,6 +15,15 @@
     <div class="main">
         <div class="input-group">
             <input id="title" type="text" class="text" style="width:600px" placeholder="标题" />
+        </div>
+        <div style="margin-top:12px;">
+            <select id="category" class="select" style="width:220px;height:34px;">
+                <option value="问答">问答</option>
+                <option value="闲聊">闲聊</option>
+                <option value="资源">资源</option>
+                <option value="求助">求助</option>
+                <option value="综合" selected="selected">综合</option>
+            </select>
         </div>
         <div style="margin-top:12px;">
             <textarea id="content" style="width:800px;height:240px;"></textarea>
@@ -27,6 +37,11 @@
 
 <script>
     var currentUser = null;
+
+    function toast(content, type){
+        javaex.message({content: content, type: type || 'error'});
+    }
+
     $(document).ready(function(){
         $.get('/user/currUser', function(res){
             if(res && res.code==200 && res.data){ currentUser = res.data; }
@@ -36,11 +51,12 @@
     function submitPost(){
         var title = $('#title').val();
         var content = $('#content').val();
-        if(!title || !content){ alert('请填写标题和内容'); return; }
-        if(!currentUser){ alert('请先登录后再发帖'); window.location.href='/login'; return; }
-        $.post('/forum/api/post/add', {title: title, content: content}, function(res){
-            if(res && res.code==200){ alert('发表成功'); window.location.href='/forum/post-list'; }
-            else alert(res.msg || '失败');
+        var category = $('#category').val();
+        if(!title || !content){ toast('请填写标题和内容'); return; }
+        if(!currentUser){ toast('请先登录后再发帖'); window.location.href='/login'; return; }
+        $.post('/forum/api/post/add', {title: title, content: content, category: category}, function(res){
+            if(res && res.code==200){ toast('发表成功', 'success'); window.location.href='/forum/post-list'; }
+            else toast(res.msg || '失败');
         });
     }
 </script>

@@ -3,12 +3,20 @@
 <mapper namespace="com.book.manager.dao.ForumReplyMapper">
 
     <insert id="insertReply">
-        INSERT INTO forum_reply(post_id, user_id, content, status, created_at)
-        VALUES(#{postId}, #{userId}, #{content}, 0, NOW())
+        INSERT INTO forum_reply(post_id, user_id, content, parent_id, root_id, status, created_at)
+        VALUES(#{postId}, #{userId}, #{content}, #{parentId}, #{rootId}, 0, NOW())
     </insert>
 
     <select id="listByPost" resultType="map">
-        SELECT r.id, r.post_id as postId, r.user_id as userId, u.nickname as nickname, u.username as username, r.content, DATE_FORMAT(r.created_at, '%Y-%m-%d %H:%i') as createdAt
+        SELECT r.id,
+               r.post_id as postId,
+               r.user_id as userId,
+               u.nickname as nickname,
+               u.username as username,
+               r.parent_id as parentId,
+               r.root_id as rootId,
+               r.content,
+               DATE_FORMAT(r.created_at, '%Y-%m-%d %H:%i') as createdAt
         FROM forum_reply r
         LEFT JOIN users u ON u.id = r.user_id
         WHERE r.post_id = #{postId} AND r.status = 0
@@ -20,7 +28,7 @@
     </update>
 
     <select id="selectById" resultType="map">
-        SELECT id, post_id as postId, user_id as userId, content, status
+        SELECT id, post_id as postId, user_id as userId, parent_id as parentId, root_id as rootId, content, status
         FROM forum_reply
         WHERE id = #{id}
         LIMIT 1
@@ -28,6 +36,12 @@
 
     <select id="countVisibleByPost" resultType="int">
         SELECT COUNT(1) FROM forum_reply WHERE post_id = #{postId} AND status = 0
+    </select>
+
+    <select id="existsReplyInPost" resultType="int">
+        SELECT COUNT(1)
+        FROM forum_reply
+        WHERE post_id = #{postId} AND id = #{replyId} AND status = 0
     </select>
 
 </mapper>

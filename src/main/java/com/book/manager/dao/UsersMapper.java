@@ -29,6 +29,11 @@ public interface UsersMapper {
     List<Users> findListByLike(String keyword);
 
     /**
+     * 仅查询读者（普通用户）
+     */
+    List<Users> findReadersByLike(String keyword);
+
+    /**
      * 编辑用户
      * @param map
      * @return

@@ -85,6 +85,15 @@ public class UserService implements UserDetailsService {
     }
 
     /**
+     * 读者搜索查询(mybatis 分页)
+     */
+    public PageInfo<Users> getReaderList(PageIn pageIn) {
+        PageHelper.startPage(pageIn.getCurrPage(), pageIn.getPageSize());
+        List<Users> listByLike = usersMapper.findReadersByLike(pageIn.getKeyword());
+        return new PageInfo<>(listByLike);
+    }
+
+    /**
      * 用户鉴权 (Spring Security 调用)
      * @param username 用户名
      * @throws UsernameNotFoundException

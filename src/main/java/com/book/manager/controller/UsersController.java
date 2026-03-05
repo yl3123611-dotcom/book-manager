@@ -61,33 +61,18 @@ public class UsersController {
     @PostMapping("/list")
     public R getUsers(@RequestBody(required = false) PageIn pageIn,
                       @RequestParam(required = false) Integer size) {
+        PageIn finalIn = normalizePageIn(pageIn, size);
+        PageInfo<Users> userList = userService.getUserList(finalIn);
+        return R.success(CodeEnum.SUCCESS, buildPageOut(userList));
+    }
 
-        // body 为空时，给默认分页参数（兼容某些调用方式）
-        if (pageIn == null) {
-            pageIn = new PageIn();
-            pageIn.setCurrPage(1);
-            pageIn.setPageSize(size != null ? size : 10);
-            pageIn.setKeyword("");
-        }
-
-        PageInfo<Users> userList = userService.getUserList(pageIn);
-
-        PageOut pageOut = new PageOut();
-        pageOut.setCurrPage(userList.getPageNum());
-        pageOut.setPageSize(userList.getPageSize());
-        pageOut.setTotal((int) userList.getTotal());
-
-        List<UserOut> outs = new ArrayList<>();
-        for (Users users : userList.getList()) {
-            UserOut out = new UserOut();
-            BeanUtils.copyProperties(users, out);
-            out.setIdent(ConvertUtil.identStr(users.getIdentity()));
-            out.setBirth(DateUtil.format(users.getBirthday(), Constants.DATE_FORMAT));
-            outs.add(out);
-        }
-
-        pageOut.setList(outs);
-        return R.success(CodeEnum.SUCCESS, pageOut);
+    @Operation(summary = "读者列表")
+    @PostMapping("/readerList")
+    public R getReaders(@RequestBody(required = false) PageIn pageIn,
+                        @RequestParam(required = false) Integer size) {
+        PageIn finalIn = normalizePageIn(pageIn, size);
+        PageInfo<Users> userList = userService.getReaderList(finalIn);
+        return R.success(CodeEnum.SUCCESS, buildPageOut(userList));
     }
 
     @Operation(summary = "添加用户")
@@ -99,10 +84,16 @@ public class UsersController {
     @Operation(summary = "添加读者")
     @PostMapping("/addReader")
     public R addReader(@RequestBody Users users) {
-        if (users == null) {
+        if (users == null || StrUtil.isBlank(users.getUsername()) || StrUtil.isBlank(users.getPassword())) {
             return R.fail(CodeEnum.PARAM_ERROR);
         }
         users.setIsAdmin(1);
+        if (users.getSize() == null || users.getSize() <= 0) {
+            users.setSize(5);
+        }
+        if (users.getIdentity() == null) {
+            users.setIdentity(0);
+        }
         return R.success(CodeEnum.SUCCESS, userService.addUser(users));
     }
 
@@ -119,6 +110,12 @@ public class UsersController {
     @Operation(summary = "编辑用户")
     @PostMapping("/update")
     public R modifyUsers(@RequestBody Users users) {
+        if (users == null || users.getId() == null) {
+            return R.fail(CodeEnum.PARAM_ERROR);
+        }
+        if (users.getSize() != null && users.getSize() <= 0) {
+            return R.failMsg("可借数量必须大于0");
+        }
         return R.success(CodeEnum.SUCCESS, userService.updateUser(users));
     }
 
@@ -230,5 +227,44 @@ public class UsersController {
             e.printStackTrace();
             return R.failMsg("头像上传失败：" + e.getMessage());
         }
+    }
+
+    private PageIn normalizePageIn(PageIn pageIn, Integer size) {
+        if (pageIn != null) {
+            if (pageIn.getCurrPage() == null || pageIn.getCurrPage() <= 0) {
+                pageIn.setCurrPage(1);
+            }
+            if (pageIn.getPageSize() == null || pageIn.getPageSize() <= 0) {
+                pageIn.setPageSize(size != null ? size : 10);
+            }
+            if (pageIn.getKeyword() == null) {
+                pageIn.setKeyword("");
+            }
+            return pageIn;
+        }
+
+        PageIn finalIn = new PageIn();
+        finalIn.setCurrPage(1);
+        finalIn.setPageSize(size != null ? size : 10);
+        finalIn.setKeyword("");
+        return finalIn;
+    }
+
+    private PageOut buildPageOut(PageInfo<Users> userList) {
+        PageOut pageOut = new PageOut();
+        pageOut.setCurrPage(userList.getPageNum());
+        pageOut.setPageSize(userList.getPageSize());
+        pageOut.setTotal((int) userList.getTotal());
+
+        List<UserOut> outs = new ArrayList<>();
+        for (Users users : userList.getList()) {
+            UserOut out = new UserOut();
+            BeanUtils.copyProperties(users, out);
+            out.setIdent(ConvertUtil.identStr(users.getIdentity()));
+            out.setBirth(DateUtil.format(users.getBirthday(), Constants.DATE_FORMAT));
+            outs.add(out);
+        }
+        pageOut.setList(outs);
+        return pageOut;
     }
 }

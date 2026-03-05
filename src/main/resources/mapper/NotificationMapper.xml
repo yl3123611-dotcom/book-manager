@@ -11,28 +11,51 @@
         <result column="attempts" property="attempts"/>
         <result column="borrow_id" property="borrowId"/>
         <result column="user_id" property="userId"/>
+        <result column="sender_user_id" property="senderUserId"/>
+        <result column="read_at" property="readAt"/>
+        <result column="signed_at" property="signedAt"/>
+        <result column="reply_content" property="replyContent"/>
+        <result column="replied_at" property="repliedAt"/>
+        <result column="archived_at" property="archivedAt"/>
         <result column="created_at" property="createdAt"/>
         <result column="updated_at" property="updatedAt"/>
     </resultMap>
 
     <insert id="insert" parameterType="com.book.manager.entity.Notification" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO notification
-        (title, content, type, status, attempts, borrow_id, user_id, created_at, updated_at)
+        (title, content, type, status, attempts, borrow_id, user_id, sender_user_id, created_at, updated_at)
         VALUES
-        (#{title}, #{content}, #{type}, #{status}, #{attempts}, #{borrowId}, #{userId}, NOW(), NOW())
+        (#{title}, #{content}, #{type}, #{status}, #{attempts}, #{borrowId}, #{userId}, #{senderUserId}, NOW(), NOW())
     </insert>
 
     <update id="markRead">
         UPDATE notification
-        SET status = 1, updated_at = NOW()
+        SET status = 1, read_at = IFNULL(read_at, NOW()), updated_at = NOW()
         WHERE id = #{id} AND user_id = #{userId}
     </update>
 
     <update id="markAllRead">
         UPDATE notification
-        SET status = 1, updated_at = NOW()
+        SET status = 1, read_at = IFNULL(read_at, NOW()), updated_at = NOW()
         WHERE user_id = #{userId} AND status = 0
     </update>
+
+    <update id="archive">
+        UPDATE notification
+        SET status = 2, archived_at = NOW(), updated_at = NOW()
+        WHERE id = #{id} AND user_id = #{userId}
+    </update>
+
+    <update id="unarchive">
+        UPDATE notification
+        SET status = 1, archived_at = NULL, read_at = IFNULL(read_at, NOW()), updated_at = NOW()
+        WHERE id = #{id} AND user_id = #{userId} AND status = 2
+    </update>
+
+    <delete id="remove">
+        DELETE FROM notification
+        WHERE id = #{id} AND user_id = #{userId}
+    </delete>
 
     <select id="selectByUser" resultMap="NotificationMap">
         SELECT *
@@ -48,6 +71,50 @@
         SELECT COUNT(1)
         FROM notification
         WHERE user_id = #{userId} AND status = 0
+    </select>
+
+    <select id="selectById" resultMap="NotificationMap">
+        SELECT *
+        FROM notification
+        WHERE id = #{id} AND user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <select id="selectArchivedByUser" resultMap="NotificationMap">
+        SELECT *
+        FROM notification
+        WHERE user_id = #{userId} AND status = 2
+        ORDER BY archived_at DESC, updated_at DESC
+    </select>
+
+    <update id="sign">
+        UPDATE notification
+        SET signed_at = IFNULL(signed_at, NOW()), status = CASE WHEN status = 2 THEN 2 ELSE 1 END,
+            read_at = IFNULL(read_at, NOW()), updated_at = NOW()
+        WHERE id = #{id} AND user_id = #{userId}
+    </update>
+
+    <update id="reply">
+        UPDATE notification
+        SET reply_content = #{replyContent}, replied_at = NOW(), status = CASE WHEN status = 2 THEN 2 ELSE 1 END,
+            read_at = IFNULL(read_at, NOW()), updated_at = NOW()
+        WHERE id = #{id} AND user_id = #{userId}
+    </update>
+
+    <select id="readReceiptByNotificationId" resultType="map">
+        SELECT n.id,
+               n.user_id AS userId,
+               COALESCE(u.nickname, u.username, CONCAT('用户', n.user_id)) AS userName,
+               n.status,
+               DATE_FORMAT(n.read_at, '%Y-%m-%d %H:%i:%s') AS readAt,
+               DATE_FORMAT(n.signed_at, '%Y-%m-%d %H:%i:%s') AS signedAt,
+               DATE_FORMAT(n.replied_at, '%Y-%m-%d %H:%i:%s') AS repliedAt
+        FROM notification n
+        LEFT JOIN users u ON u.id = n.user_id
+        WHERE (n.borrow_id &lt;=&gt; (SELECT borrow_id FROM notification WHERE id = #{id} LIMIT 1))
+          AND n.type = (SELECT type FROM notification WHERE id = #{id} LIMIT 1)
+          AND n.title = (SELECT title FROM notification WHERE id = #{id} LIMIT 1)
+        ORDER BY n.user_id ASC
     </select>
 
 </mapper>

@@ -86,7 +86,15 @@ public class AiMemoryConfig {
 
             @Override
             public List<ChatMessage> getMessages(Object memoryId) {
-                String json = redis.opsForValue().get(key(memoryId));
+                String json;
+                try {
+                    json = redis.opsForValue().get(key(memoryId));
+                } catch (Exception e) {
+                    // Redis 异常时降级为无历史，避免影响主流程
+                    System.err.println("[AI memory] Redis get failed: " + e.getMessage());
+                    return new ArrayList<>();
+                }
+
                 if (json == null || json.isBlank()) return new ArrayList<>();
 
                 try {
@@ -121,7 +129,12 @@ public class AiMemoryConfig {
 
             @Override
             public void deleteMessages(Object memoryId) {
-                redis.delete(key(memoryId));
+                try {
+                    redis.delete(key(memoryId));
+                } catch (Exception e) {
+                    // 清理失败不阻断业务接口
+                    System.err.println("[AI memory] Redis delete failed: " + e.getMessage());
+                }
             }
 
             private StoredMessage fromChatMessage(ChatMessage m) {

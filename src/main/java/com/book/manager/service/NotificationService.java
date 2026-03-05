@@ -3,6 +3,7 @@ package com.book.manager.service;
 import cn.hutool.core.date.DateUnit;
 import cn.hutool.core.date.DateUtil;
 import com.book.manager.dao.NotificationMapper;
+import com.book.manager.entity.Book;
 import com.book.manager.entity.Borrow;
 import com.book.manager.entity.Notification;
 import com.book.manager.entity.Users;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class NotificationService {
@@ -24,9 +26,37 @@ public class NotificationService {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private BookService bookService;
+
     /** 查询用户通知（可按状态筛选） */
     public List<Notification> list(Integer userId, Integer status) {
-        return notificationMapper.selectByUser(userId, status);
+        List<Notification> list = notificationMapper.selectByUser(userId, status);
+        enrichBorrowBookName(list);
+        return list;
+    }
+
+    public List<Notification> archivedList(Integer userId) {
+        List<Notification> list = notificationMapper.selectArchivedByUser(userId);
+        enrichBorrowBookName(list);
+        return list;
+    }
+
+    public Notification detail(Integer userId, Integer id) {
+        Notification n = notificationMapper.selectById(id, userId);
+        if (n == null) {
+            return null;
+        }
+        enrichBorrowBookName(List.of(n));
+        return n;
+    }
+
+    public List<Map<String, Object>> readReceipt(Integer userId, Integer id) {
+        Notification current = notificationMapper.selectById(id, userId);
+        if (current == null) {
+            return List.of();
+        }
+        return notificationMapper.readReceiptByNotificationId(id);
     }
 
     public int unreadCount(Integer userId) {
@@ -39,6 +69,53 @@ public class NotificationService {
 
     public int markAllRead(Integer userId) {
         return notificationMapper.markAllRead(userId);
+    }
+
+    public boolean sign(Integer userId, Integer id) {
+        return notificationMapper.sign(id, userId) > 0;
+    }
+
+    public boolean reply(Integer userId, Integer id, String replyContent) {
+        if (replyContent == null || replyContent.trim().isEmpty()) {
+            return false;
+        }
+        return notificationMapper.reply(id, userId, replyContent.trim()) > 0;
+    }
+
+    public boolean archive(Integer userId, Integer id) {
+        return notificationMapper.archive(id, userId) > 0;
+    }
+
+    public boolean unarchive(Integer userId, Integer id) {
+        return notificationMapper.unarchive(id, userId) > 0;
+    }
+
+    public boolean remove(Integer userId, Integer id) {
+        return notificationMapper.remove(id, userId) > 0;
+    }
+
+    private void enrichBorrowBookName(List<Notification> list) {
+        if (list == null || list.isEmpty()) {
+            return;
+        }
+        for (Notification n : list) {
+            if (n == null || n.getBorrowId() == null) continue;
+            if (("DUE_REMINDER".equals(n.getType()) || "OVERDUE_ALERT".equals(n.getType()))
+                    && n.getContent() != null && !n.getContent().contains("《")) {
+                Borrow borrow = borrowService.findById(n.getBorrowId());
+                if (borrow == null || borrow.getBookId() == null) continue;
+                Book book = bookService.findBook(borrow.getBookId());
+                if (book == null || book.getName() == null || book.getName().isBlank()) continue;
+
+                String bookName = "《" + book.getName().trim() + "》";
+                String content = n.getContent();
+                content = content.replaceAll("\\(id=\\d+\\)", bookName);
+                if (!content.contains(bookName)) {
+                    content = "您借阅的" + bookName + "，" + content;
+                }
+                n.setContent(content);
+            }
+        }
     }
 
     /**
@@ -66,15 +143,22 @@ public class NotificationService {
             String type;
             String title;
             String content;
+            String bookName = "该书籍";
+            if (b.getBookId() != null) {
+                Book book = bookService.findBook(b.getBookId());
+                if (book != null && book.getName() != null && !book.getName().isBlank()) {
+                    bookName = "《" + book.getName().trim() + "》";
+                }
+            }
 
             if (now.after(b.getEndTime())) {
                 type = "OVERDUE_ALERT";
                 title = "图书逾期提醒";
-                content = "您借阅的图书 (id=" + b.getBookId() + ") 已逾期，请尽快归还。";
+                content = "您借阅的" + bookName + "已逾期，请尽快归还。";
             } else if (!b.getEndTime().after(dueThreshold)) {
                 type = "DUE_REMINDER";
                 title = "图书即将到期提醒";
-                content = "您借阅的图书 (id=" + b.getBookId() + ") 将于 " + DateUtil.formatDateTime(b.getEndTime()) + " 到期，请及时归还或续借。";
+                content = "您借阅的" + bookName + "将于 " + DateUtil.formatDateTime(b.getEndTime()) + " 到期，请及时归还或续借。";
             } else {
                 continue;
             }
@@ -90,6 +174,7 @@ public class NotificationService {
             n.setContent(content);
             n.setStatus(0);
             n.setAttempts(0);
+            n.setSenderUserId(0);
 
             notificationMapper.insert(n);
             created++;

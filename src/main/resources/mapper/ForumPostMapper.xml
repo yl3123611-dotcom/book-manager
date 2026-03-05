@@ -3,22 +3,43 @@
 <mapper namespace="com.book.manager.dao.ForumPostMapper">
 
     <insert id="insertPost">
-        INSERT INTO forum_post(user_id, title, content, status, view_count, reply_count, created_at)
-        VALUES(#{userId}, #{title}, #{content}, 0, 0, 0, NOW())
+        INSERT INTO forum_post(user_id, title, content, category, status, view_count, reply_count, created_at)
+        VALUES(#{userId}, #{title}, #{content}, IFNULL(NULLIF(#{category}, ''), '综合'), 0, 0, 0, NOW())
     </insert>
 
     <select id="listPosts" resultType="map">
-        SELECT id, user_id as userId, title, LEFT(content,200) as summary, view_count as viewCount, reply_count as replyCount, DATE_FORMAT(created_at,'%Y-%m-%d %H:%i') as createdAt
+        SELECT id,
+               user_id as userId,
+               title,
+               category,
+               LEFT(content,200) as summary,
+               accepted_reply_id as acceptedReplyId,
+               view_count as viewCount,
+               reply_count as replyCount,
+               DATE_FORMAT(created_at,'%Y-%m-%d %H:%i') as createdAt
         FROM forum_post
         WHERE status = 0
         <if test="keyword != null and keyword.trim() != ''">
             AND (title LIKE CONCAT('%', #{keyword}, '%') OR content LIKE CONCAT('%', #{keyword}, '%'))
         </if>
+        <if test="category != null and category.trim() != ''">
+            AND category = #{category}
+        </if>
         ORDER BY is_pinned DESC, created_at DESC
     </select>
 
     <select id="selectById" resultType="map">
-        SELECT id, user_id as userId, title, content, view_count as viewCount, reply_count as replyCount, is_pinned as isPinned, is_featured as isFeatured, DATE_FORMAT(created_at,'%Y-%m-%d %H:%i') as createdAt
+        SELECT id,
+               user_id as userId,
+               title,
+               category,
+               content,
+               accepted_reply_id as acceptedReplyId,
+               view_count as viewCount,
+               reply_count as replyCount,
+               is_pinned as isPinned,
+               is_featured as isFeatured,
+               DATE_FORMAT(created_at,'%Y-%m-%d %H:%i') as createdAt
         FROM forum_post
         WHERE id = #{id} AND status = 0
     </select>
@@ -41,7 +62,18 @@
 
     <!-- admin -->
     <select id="adminList" resultType="map">
-        SELECT id, user_id as userId, title, LEFT(content,200) as summary, status, is_pinned as isPinned, is_featured as isFeatured, view_count as viewCount, reply_count as replyCount, DATE_FORMAT(created_at,'%Y-%m-%d %H:%i') as createdAt
+        SELECT id,
+               user_id as userId,
+               title,
+               category,
+               LEFT(content,200) as summary,
+               status,
+               accepted_reply_id as acceptedReplyId,
+               is_pinned as isPinned,
+               is_featured as isFeatured,
+               view_count as viewCount,
+               reply_count as replyCount,
+               DATE_FORMAT(created_at,'%Y-%m-%d %H:%i') as createdAt
         FROM forum_post
         <if test="keyword != null and keyword.trim() != ''">
             WHERE (title LIKE CONCAT('%', #{keyword}, '%') OR content LIKE CONCAT('%', #{keyword}, '%'))
@@ -60,5 +92,123 @@
     <update id="updateFeatured">
         UPDATE forum_post SET is_featured = #{isFeatured} WHERE id = #{id}
     </update>
+
+    <insert id="addFavorite">
+        INSERT IGNORE INTO forum_post_favorite(post_id, user_id, created_at)
+        VALUES(#{postId}, #{userId}, NOW())
+    </insert>
+
+    <delete id="removeFavorite">
+        DELETE FROM forum_post_favorite WHERE post_id = #{postId} AND user_id = #{userId}
+    </delete>
+
+    <select id="existsFavorite" resultType="int">
+        SELECT COUNT(1) FROM forum_post_favorite WHERE post_id = #{postId} AND user_id = #{userId}
+    </select>
+
+    <update id="updateAcceptedReply">
+        UPDATE forum_post
+        SET accepted_reply_id = #{replyId}, updated_at = NOW()
+        WHERE id = #{postId} AND user_id = #{userId} AND status = 0
+    </update>
+
+    <update id="updateMyPost">
+        UPDATE forum_post
+        SET title = #{title},
+            content = #{content},
+            category = IFNULL(NULLIF(#{category}, ''), '综合'),
+            updated_at = NOW()
+        WHERE id = #{id} AND user_id = #{userId} AND status = 0
+    </update>
+
+    <update id="deleteMyPost">
+        UPDATE forum_post
+        SET status = 2, updated_at = NOW()
+        WHERE id = #{id} AND user_id = #{userId} AND status != 2
+    </update>
+
+    <insert id="insertReport">
+        INSERT INTO forum_post_report(post_id, user_id, reason, status, created_at)
+        VALUES(#{postId}, #{userId}, #{reason}, 0, NOW())
+        ON DUPLICATE KEY UPDATE reason = VALUES(reason), status = 0, handled_by = NULL, handled_at = NULL, handle_note = NULL, created_at = NOW()
+    </insert>
+
+    <select id="listReports" resultType="map">
+        SELECT r.id,
+               r.post_id as postId,
+               p.title as postTitle,
+               p.category as category,
+               r.user_id as userId,
+               u.username as reporterUsername,
+               u.nickname as reporterNickname,
+               r.reason,
+               r.status,
+               r.handle_note as handleNote,
+               r.handled_by as handledBy,
+               hu.username as handledByUsername,
+               DATE_FORMAT(r.created_at,'%Y-%m-%d %H:%i') as createdAt,
+               DATE_FORMAT(r.handled_at,'%Y-%m-%d %H:%i') as handledAt
+        FROM forum_post_report r
+        LEFT JOIN forum_post p ON p.id = r.post_id
+        LEFT JOIN users u ON u.id = r.user_id
+        LEFT JOIN users hu ON hu.id = r.handled_by
+        WHERE 1 = 1
+        <if test="status != null">
+            AND r.status = #{status}
+        </if>
+        <if test="keyword != null and keyword.trim() != ''">
+            AND (p.title LIKE CONCAT('%', #{keyword}, '%')
+                 OR r.reason LIKE CONCAT('%', #{keyword}, '%')
+                 OR u.username LIKE CONCAT('%', #{keyword}, '%')
+                 OR u.nickname LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY r.status ASC, r.created_at DESC
+    </select>
+
+    <update id="handleReport">
+        UPDATE forum_post_report
+        SET status = #{status},
+            handle_note = #{handleNote},
+            handled_by = #{handledBy},
+            handled_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <select id="listMyPosts" resultType="map">
+        SELECT id,
+               user_id as userId,
+               title,
+               category,
+               LEFT(content,200) as summary,
+               accepted_reply_id as acceptedReplyId,
+               view_count as viewCount,
+               reply_count as replyCount,
+               DATE_FORMAT(created_at,'%Y-%m-%d %H:%i') as createdAt
+        FROM forum_post
+        WHERE status = 0 AND user_id = #{userId}
+        <if test="keyword != null and keyword.trim() != ''">
+            AND (title LIKE CONCAT('%', #{keyword}, '%') OR content LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="listMyFavorites" resultType="map">
+        SELECT p.id,
+               p.user_id as userId,
+               p.title,
+               p.category,
+               LEFT(p.content,200) as summary,
+               p.accepted_reply_id as acceptedReplyId,
+               p.view_count as viewCount,
+               p.reply_count as replyCount,
+               DATE_FORMAT(f.created_at,'%Y-%m-%d %H:%i') as createdAt
+        FROM forum_post_favorite f
+        INNER JOIN forum_post p ON p.id = f.post_id
+        WHERE f.user_id = #{userId} AND p.status = 0
+        <if test="keyword != null and keyword.trim() != ''">
+            AND (p.title LIKE CONCAT('%', #{keyword}, '%') OR p.content LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY f.created_at DESC
+    </select>
 
 </mapper>
